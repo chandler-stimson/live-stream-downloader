@@ -124,6 +124,16 @@ const onMessage = (request, sender) => {
       }
     }
   }
+  else if (request.method === 'close') {
+    chrome.tabs.executeScript({
+      code: `{
+        const e = document.getElementById('hsl-drop-down');
+        if (e) {
+          e.remove();
+        }
+      }`
+    });
+  }
 };
 chrome.runtime.onMessage.addListener(onMessage);
 
@@ -135,14 +145,17 @@ chrome.browserAction.onClicked.addListener(tab => {
   });
 
   if (jobs[tab.id]) {
-    if (confirm('Are you sure you want to abort the active job?')) {
-      badge('');
-      notify('Active job is aborted');
-      const job = jobs[tab.id];
-      delete jobs[tab.id];
-      job.abort();
-    }
-    return;
+    return chrome.tabs.executeScript({
+      code: `confirm('Are you sure you want to abort the active job?')`
+    }, ([bol]) => {
+      if (bol) {
+        badge('');
+        notify('Active job is aborted');
+        const job = jobs[tab.id];
+        delete jobs[tab.id];
+        job.abort();
+      }
+    });
   }
 
   if (!segments[tab.id]) {
@@ -213,30 +226,43 @@ chrome.browserAction.onClicked.addListener(tab => {
     }
   });
 
-  const index = prompt('Select an stream:\n\n' + msg.join('\n'), 1);
-  if (index) {
-    const segment = segments[tab.id][list[Number(index) - 1][1]];
-    let extension = '';
-    if (segment[0].uri.indexOf('.') !== -1) {
-      extension = segment[0].uri.split('.').pop().split('?')[0];
+  chrome.tabs.executeScript({
+    code: `{
+      const msg = ${JSON.stringify(msg)}.join('\\n');
+      prompt('Select an stream:\\n\\n' + msg, 1);
+    }`,
+    runAt: 'document_start'
+  }, arr => {
+    if (arr && arr.length) {
+      const index = arr[0];
+      if (segments[tab.id][list[Number(index) - 1]]) {
+        const segment = segments[tab.id][list[Number(index) - 1][1]];
+        let extension = '';
+        if (segment[0].uri.indexOf('.') !== -1) {
+          extension = segment[0].uri.split('.').pop().split('?')[0];
+        }
+        const controls = {};
+        jobs[tab.id] = controls;
+        getSegments(tab.title, segment, badge, controls).then(o => {
+          const url = URL.createObjectURL(o.blob);
+          const filename = o.properties.filename + '.' + extension || o.properties.fileextension || 'mkv';
+          chrome.downloads.download({
+            url,
+            filename
+          }, () => {
+            URL.revokeObjectURL(url);
+            badge(Object.keys(segments[tab.id]).length + '');
+          });
+        }).catch(e => {
+          badge('E');
+          console.warn(e);
+        }).finally(() => delete jobs[tab.id]);
+      }
+      else if (index) {
+        notify('Selected index is out of range');
+      }
     }
-    const controls = {};
-    jobs[tab.id] = controls;
-    getSegments(tab.title, segment, badge, controls).then(o => {
-      const url = URL.createObjectURL(o.blob);
-      const filename = o.properties.filename + '.' + extension || o.properties.fileextension || 'mkv';
-      chrome.downloads.download({
-        url,
-        filename
-      }, () => {
-        URL.revokeObjectURL(url);
-        badge('');
-      });
-    }).catch(e => {
-      badge('E');
-      console.warn(e);
-    }).finally(() => delete jobs[tab.id]);
-  }
+  });
 });
 chrome.tabs.onRemoved.addListener(tabId => {
   if (jobs[tabId]) {
@@ -263,31 +289,22 @@ chrome.contextMenus.create({
 });
 chrome.contextMenus.create({
   title: 'Parse a Local M3U8 File with Live Stream Downloader',
-  contexts: ['browser_action'],
-  onclick: (info, tab) => chrome.tabs.executeScript({
+  contexts: ['browser_action', 'page'],
+  onclick: () => chrome.tabs.executeScript({
     runAt: 'document_start',
     code: `{
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.m3u8';
-      input.onchange = e => {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        reader.onload = () => chrome.runtime.sendMessage({
-          method: 'manifest',
-          content: reader.result,
-          frameId: ${info.frameId},
-          url: location.href + '/local/' + file.name
-        });
-        reader.readAsText(file);
-      };
-      input.click();
+      const e = document.getElementById('hsl-drop-down');
+      if (e) {
+        e.remove();
+      }
+      const iframe = document.createElement('iframe');
+      iframe.id = 'hsl-drop-down';
+      iframe.style = 'border: none; position: fixed; top: 10px; right: 10px; width: 400px;' +
+                     'height: 200px; box-shadow: 0 1px 6px 0 rgba(32,33,36,0.28); z-index: 2147483647;';
+      iframe.src = chrome.runtime.getURL('/data/scripts/user.html');
+      document.body.appendChild(iframe);
+      console.log(iframe);
     }`
-  }, () => {
-    const lastError = chrome.runtime.lastError;
-    if (lastError) {
-      notify(lastError);
-    }
   })
 });
 

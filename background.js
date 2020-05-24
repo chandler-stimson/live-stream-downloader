@@ -8,16 +8,20 @@ const notify = e => chrome.notifications.create({
   message: e.message || e
 });
 
-const inspect = d => chrome.tabs.executeScript(d.tabId, {
-  runAt: 'document_start',
-  frameId: d.frameId,
-  code: `fetch("${d.url}").then(r => r.text()).then(content => chrome.runtime.sendMessage({
-    method: 'manifest',
-    content,
-    frameId: ${d.frameId},
-    url: '${d.url}'
-  })).catch(e => console.warn('ERROR', e));`
-});
+const inspect = d => {
+  if (d.tabId && d.tabId > 0) {
+    fetch(d.url).then(r => r.text()).then(content => onMessage({
+      method: 'manifest',
+      content,
+      frameId: d.frameId,
+      url: d.url
+    }, {
+      tab: {
+        id: d.tabId
+      }
+    })).catch(e => console.warn('ERROR', e));
+  }
+};
 
 const cache = {};
 chrome.webRequest.onBeforeRequest.addListener(d => {
@@ -59,7 +63,7 @@ const path = (root, rel) => {
   return a.join('/');
 };
 
-chrome.runtime.onMessage.addListener((request, sender) => {
+const onMessage = (request, sender) => {
   const tabId = sender.tab.id;
 
   if (request.method === 'manifest') {
@@ -67,6 +71,7 @@ chrome.runtime.onMessage.addListener((request, sender) => {
     parser.push(request.content);
     parser.end();
     const {manifest} = parser;
+
     if (manifest) {
       if (manifest.playlists) {
         for (const playlist of manifest.playlists) {
@@ -109,13 +114,18 @@ chrome.runtime.onMessage.addListener((request, sender) => {
             '64': 'data/icons/active/64.png'
           }
         });
+        chrome.browserAction.setBadgeText({
+          text: Object.keys(segments[tabId]).length + '',
+          tabId
+        });
       }
       else {
         console.log('IGNORED', parser);
       }
     }
   }
-});
+};
+chrome.runtime.onMessage.addListener(onMessage);
 
 const jobs = {};
 chrome.browserAction.onClicked.addListener(tab => {
@@ -163,15 +173,16 @@ chrome.browserAction.onClicked.addListener(tab => {
   }
   const list = [];
   for (const playlist of Object.keys(playlists).sort((a, b) => {
-    const aa = playlists[a].filter(s => attributes[tab.id][s]).filter(s => attributes[tab.id][s].RESOLUTION).sort((a, b) => {
-      return attributes[tab.id][a].RESOLUTION.width - attributes[tab.id][b].RESOLUTION.width;
+    const att = attributes[tab.id];
+    const aa = playlists[a].filter(s => att[s]).filter(s => att[s].RESOLUTION).sort((a, b) => {
+      return att[a].RESOLUTION.width - att[b].RESOLUTION.width;
     }).shift();
-    const ab = playlists[b].filter(s => attributes[tab.id][s]).filter(s => attributes[tab.id][s].RESOLUTION).sort((a, b) => {
-      return attributes[tab.id][a].RESOLUTION.width - attributes[tab.id][b].RESOLUTION.width;
+    const ab = playlists[b].filter(s => att[s]).filter(s => att[s].RESOLUTION).sort((a, b) => {
+      return att[a].RESOLUTION.width - att[b].RESOLUTION.width;
     }).shift();
 
     if (aa && ab) {
-      return attributes[tab.id][ab].RESOLUTION.width - attributes[tab.id][aa].RESOLUTION.width;
+      return att[ab].RESOLUTION.width - att[aa].RESOLUTION.width;
     }
     if (aa) {
       return -1;
@@ -239,3 +250,70 @@ chrome.webNavigation.onCommitted.addListener(d => {
     jobs[d.tabId].abort();
   }
 });
+
+chrome.contextMenus.create({
+  title: 'Parse with Live Stream Downloader',
+  contexts: ['link'],
+  targetUrlPatterns: ['*://*/*.m3u8*'],
+  onclick: (info, tab) => inspect({
+    tabId: tab.id,
+    frameId: info.frameId,
+    url: info.linkUrl
+  })
+});
+chrome.contextMenus.create({
+  title: 'Parse a Local M3U8 File with Live Stream Downloader',
+  contexts: ['browser_action'],
+  onclick: (info, tab) => chrome.tabs.executeScript({
+    runAt: 'document_start',
+    code: `{
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.m3u8';
+      input.onchange = e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = () => chrome.runtime.sendMessage({
+          method: 'manifest',
+          content: reader.result,
+          frameId: ${info.frameId},
+          url: location.href + '/local/' + file.name
+        });
+        reader.readAsText(file);
+      };
+      input.click();
+    }`
+  }, () => {
+    const lastError = chrome.runtime.lastError;
+    if (lastError) {
+      notify(lastError);
+    }
+  })
+});
+
+/* FAQs & Feedback */
+{
+  const {management, runtime: {onInstalled, setUninstallURL, getManifest}, storage, tabs} = chrome;
+  if (navigator.webdriver !== true) {
+    const page = getManifest().homepage_url;
+    const {name, version} = getManifest();
+    onInstalled.addListener(({reason, previousVersion}) => {
+      management.getSelf(({installType}) => installType === 'normal' && storage.local.get({
+        'faqs': true,
+        'last-update': 0
+      }, prefs => {
+        if (reason === 'install' || (prefs.faqs && reason === 'update')) {
+          const doUpdate = (Date.now() - prefs['last-update']) / 1000 / 60 / 60 / 24 > 45;
+          if (doUpdate && previousVersion !== version) {
+            tabs.create({
+              url: page + '?version=' + version + (previousVersion ? '&p=' + previousVersion : '') + '&type=' + reason,
+              active: reason === 'install'
+            });
+            storage.local.set({'last-update': Date.now()});
+          }
+        }
+      }));
+    });
+    setUninstallURL(page + '?rd=feedback&name=' + encodeURIComponent(name) + '&version=' + version);
+  }
+}

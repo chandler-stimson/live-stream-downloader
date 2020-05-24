@@ -10,9 +10,11 @@
     "*://*/*.m3u8*",
     "downloads",
     "webNavigation",
-    "notifications"
-   ],
-   "background": {
+    "notifications",
+    "contextMenus"
+  ],
+  "homepage_url": "https://add0n.com/hls-downloader.html",
+  "background": {
     "scripts": [
       "downloads/file.js",
       "downloads/get.js",

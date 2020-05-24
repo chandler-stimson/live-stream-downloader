@@ -1039,9 +1039,7 @@ class NFGet extends FGet { /* extends filename guessing */
       }
     }
     // removing exceptions
-    filename = filename.replace(/[\\/:*?"<>|"]/g, '-');
-    // removing trimming white spaces
-    filename = filename.trim();
+    filename = filename.trim().replace(/[\\/:*?"<>|]/g, '_').substring(0, 240);
     filename = filename || 'unknown';
 
     return {filename, fileextension};

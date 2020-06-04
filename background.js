@@ -229,13 +229,13 @@ chrome.browserAction.onClicked.addListener(tab => {
   chrome.tabs.executeScript({
     code: `{
       const msg = ${JSON.stringify(msg)}.join('\\n');
-      prompt('Select an stream:\\n\\n' + msg, 1);
+      prompt('Select n stream:\\n\\n' + msg, 1);
     }`,
     runAt: 'document_start'
   }, arr => {
     if (arr && arr.length) {
       const index = arr[0];
-      if (segments[tab.id][list[Number(index) - 1]]) {
+      if (list[Number(index) - 1] && list[Number(index) - 1][1]) {
         const segment = segments[tab.id][list[Number(index) - 1][1]];
         let extension = '';
         if (segment[0].uri.indexOf('.') !== -1) {
@@ -259,6 +259,7 @@ chrome.browserAction.onClicked.addListener(tab => {
         }).finally(() => delete jobs[tab.id]);
       }
       else if (index) {
+        console.log(index, Number(index) - 1, list[Number(index) - 1]);
         notify('Selected index is out of range');
       }
     }

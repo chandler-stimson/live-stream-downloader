@@ -1,15 +1,25 @@
 {
   "manifest_version": 2,
-  "version": "0.1.1",
+  "version": "0.1.4",
   "name": "Live Stream Downloader",
   "description": "Detect and Download M3U8 HLS Streams (HTTP Live Stream) in multiple threads to your local disk",
   "permissions": [
     "storage",
     "webRequest",
-    "*://*/*.m3u8",
+    "webRequestBlocking",
+    "*://*/*.flv*",
+    "*://*/*.avi*",
+    "*://*/*.wmv*",
+    "*://*/*.mov*",
+    "*://*/*.mp4*",
+    "*://*/*.pcm*",
+    "*://*/*.wav*",
+    "*://*/*.mp3*",
+    "*://*/*.aac*",
+    "*://*/*.ogg*",
+    "*://*/*.wma*",
     "*://*/*.m3u8*",
     "downloads",
-    "webNavigation",
     "notifications",
     "contextMenus"
   ],
@@ -18,8 +28,7 @@
     "scripts": [
       "downloads/file.js",
       "downloads/get.js",
-      "get.js",
-      "m3u8-parser.js",
+      "downloads/manager.js",
       "background.js"
     ]
   },

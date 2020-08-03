@@ -4,16 +4,16 @@ const read = file => {
   const reader = new FileReader();
   reader.onload = () => {
     chrome.runtime.sendMessage({
-      method: 'manifest',
-      content: reader.result,
-      url: location.href + '/local/' + file.name,
-      frameId: 0
+      method: 'open-add',
+      jobs: [{
+        link: reader.result
+      }]
     });
     chrome.runtime.sendMessage({
       method: 'close'
     });
   };
-  reader.readAsText(file);
+  reader.readAsDataURL(file);
 };
 
 document.querySelector('input').onchange = e => {

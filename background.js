@@ -1,5 +1,18 @@
-/* global m3u8Parser, getSegments */
+/* global manager */
 'use strict';
+
+const CONFIG = {
+  'use-native-when-possible': false,
+  'min-segment-size': 100 * 1024,
+  'max-segment-size': 100 * 1024 * 1024,
+  'absolute-max-segment-size': 100 * 1024 * 1024,
+  'overwrite-segment-size': true,
+  'max-number-of-threads': 3,
+  'max-retires': 10,
+  'speed-over-seconds': 10,
+  'max-simultaneous-writes': 3,
+  'max-number-memory-chunks': 500
+};
 
 const notify = e => chrome.notifications.create({
   type: 'basic',
@@ -8,120 +21,148 @@ const notify = e => chrome.notifications.create({
   message: e.message || e
 });
 
-const inspect = d => {
-  if (d.tabId && d.tabId > 0) {
-    fetch(d.url).then(r => r.text()).then(content => onMessage({
-      method: 'manifest',
-      content,
-      frameId: d.frameId,
-      url: d.url
+const cache = {};
+chrome.tabs.onRemoved.addListener(tabId => delete cache[tabId]);
+
+const active = tabId => chrome.browserAction.setIcon({
+  tabId,
+  path: {
+    '16': 'data/icons/active/16.png',
+    '19': 'data/icons/active/19.png',
+    '32': 'data/icons/active/32.png',
+    '38': 'data/icons/active/38.png',
+    '48': 'data/icons/active/48.png'
+  }
+});
+
+const webRequest = {
+  observe(d) {
+    if (d.tabId > 0) {
+      cache[d.tabId] = cache[d.tabId] || {};
+      cache[d.tabId][d.url] = d.frameId;
+      active(d.tabId);
+    }
+  },
+  apply() {
+    chrome.webRequest.onBeforeRequest.addListener(webRequest.observe, {
+      urls: ['*://*/*'],
+      types: ['media']
+    });
+    chrome.webRequest.onBeforeRequest.addListener(webRequest.observe, {
+      urls: [
+        '*://*/*.flv*', '*://*/*.avi*', '*://*/*.wmv*', '*://*/*.mov*', '*://*/*.mp4*',
+        '*://*/*.pcm*', '*://*/*.wav*', '*://*/*.mp3*', '*://*/*.aac*', '*://*/*.ogg*', '*://*/*.wma*',
+        '*://*/*.m3u8*'
+      ],
+      types: ['xmlhttprequest']
+    });
+    // reset
+    chrome.webRequest.onBeforeRequest.addListener(d => {
+      cache[d.tabId] = {};
     }, {
-      tab: {
-        id: d.tabId
-      }
-    })).catch(e => console.warn('ERROR', e));
+      urls: ['*://*/*'],
+      types: ['main_frame']
+    });
   }
 };
+webRequest.apply();
 
-const cache = {};
-chrome.webRequest.onBeforeRequest.addListener(d => {
-  cache[d.tabId] = cache[d.tabId] || {};
-  if (cache[d.tabId][d.url]) {
-    return;
-  }
-  cache[d.tabId][d.url] = true;
-  inspect(d);
-}, {
-  urls: ['*://*/*.m3u8', '*://*/*.m3u8*']
-});
-
-const segments = {};
-const attributes = {};
+// remove job on tab close
 chrome.tabs.onRemoved.addListener(tabId => {
-  delete segments[tabId];
-  delete attributes[tabId];
-  delete cache[tabId];
-});
-chrome.webNavigation.onCommitted.addListener(d => {
-  if (d.frameId === 0) {
-    delete segments[d.tabId];
-    delete attributes[d.tabId];
-    delete cache[d.tabId];
+  const id = Object.keys(ds).filter(id => ds[id].tabId === tabId).shift();
+  if (id) {
+    manager.cancel(id);
   }
 });
-const path = (root, rel) => {
-  let a = root.split('/');
-  const b = rel.split('/').filter(a => a);
-  const index = a.indexOf(b[0]);
-  if (index === -1) {
-    a.pop();
+
+const onClicked = (tab, jobs) => {
+  const id = Object.keys(ds).filter(id => ds[id].tabId === tab.id).shift();
+  if (id) {
+    const msg = 'Are you sure you want to abort the active job?';
+    chrome.tabs.executeScript({
+      code: `confirm('${msg}')`
+    }, ar => {
+      // on protected tabs use window.confirm instead of injecting script
+      if (chrome.runtime.lastError ? confirm(msg) : ar[0]) {
+        notify('Active job is aborted');
+        manager.cancel(id);
+      }
+    });
   }
   else {
-    a = a.slice(0, index);
-  }
-  a.push(rel);
-  return a.join('/');
-};
-
-const onMessage = (request, sender) => {
-  const tabId = sender.tab.id;
-
-  if (request.method === 'manifest') {
-    const parser = new m3u8Parser.Parser();
-    parser.push(request.content);
-    parser.end();
-    const {manifest} = parser;
-
-    if (manifest) {
-      if (manifest.playlists) {
-        for (const playlist of manifest.playlists) {
-          let url = playlist.uri;
-          if (url.startsWith('http') === false) {
-            url = path(request.url, url);
-          }
-          attributes[tabId] = attributes[tabId] || {};
-          attributes[tabId][url] = playlist.attributes;
-          inspect({
-            tabId,
-            frameId: request.frameId,
-            url
-          });
+    chrome.storage.local.get({
+      'job-width': 700,
+      'job-height': 500,
+      'job-left': screen.availLeft + Math.round((screen.availWidth - 700) / 2),
+      'job-top': screen.availTop + Math.round((screen.availHeight - 500) / 2)
+    }, prefs => {
+      jobs = jobs || Object.keys(cache[tab.id] || {}).map(link => ({
+        link
+      }));
+      const args = new URLSearchParams();
+      args.append('tabId', tab.id);
+      args.append('referrer', tab.url);
+      args.append('css', `
+        :root {
+          --blue: #da8b2e;
         }
-      }
-      else if (manifest.segments && manifest.segments.length) {
-        segments[tabId] = segments[tabId] || {};
-        segments[tabId][request.url] = manifest.segments.map(o => {
-          if (o.uri.startsWith('http')) {
-            return o;
-          }
-          else {
-            return {
-              ...o,
-              uri: path(request.url, o.uri)
-            };
-          }
-        });
-        segments[tabId][request.url].frameId = request.frameId;
+        #tools {
+          grid-template-columns: min-content min-content;
+        }
+        #store,
+        #merge {
+          display: none;
+        }
+      `);
+      args.append('jobs', JSON.stringify(jobs));
 
-        chrome.browserAction.setIcon({
-          tabId,
-          path: {
-            '16': 'data/icons/active/16.png',
-            '19': 'data/icons/active/19.png',
-            '32': 'data/icons/active/32.png',
-            '38': 'data/icons/active/38.png',
-            '48': 'data/icons/active/48.png',
-            '64': 'data/icons/active/64.png'
+      chrome.windows.create({
+        url: 'data/add/index.html?' + args.toString(),
+        width: prefs['job-width'],
+        height: prefs['job-height'],
+        left: prefs['job-left'],
+        top: prefs['job-top'],
+        type: 'popup'
+      });
+    });
+  }
+};
+chrome.browserAction.onClicked.addListener(onClicked);
+
+const ds = {};
+
+chrome.runtime.onMessage.addListener((request, sender, response) => {
+  if (request.method === 'add-jobs') {
+    if (request.jobs.length) {
+      (async () => {
+        for (const {link, links, keys, filename, threads} of request.jobs) {
+          const job = {
+            url: link,
+            filename
+          };
+          if (links) {
+            delete job.url;
+            job.urls = links;
+            job.keys = keys;
           }
-        });
-        chrome.browserAction.setBadgeText({
-          text: Object.keys(segments[tabId]).length + '',
-          tabId
-        });
-      }
-      else {
-        console.log('IGNORED', parser);
-      }
+          timer.count += 1;
+          manager.download(job, id => {
+            ds[id] = {
+              tabId: request.tabId
+            };
+            timer.check();
+          }, {
+            ...CONFIG,
+            ...(request.configs || {}),
+            'max-number-of-threads': threads ? Math.min(8, threads) : 3
+          });
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      })();
+      response(true);
+    }
+    else {
+      notify('There is no link to download');
     }
   }
   else if (request.method === 'close') {
@@ -134,159 +175,76 @@ const onMessage = (request, sender) => {
       }`
     });
   }
-};
-chrome.runtime.onMessage.addListener(onMessage);
-
-const jobs = {};
-chrome.browserAction.onClicked.addListener(tab => {
-  const badge = text => chrome.browserAction.setBadgeText({
-    tabId: tab.id,
-    text
-  });
-
-  if (jobs[tab.id]) {
-    return chrome.tabs.executeScript({
-      code: `confirm('Are you sure you want to abort the active job?')`
-    }, ([bol]) => {
-      if (bol) {
-        badge('');
-        notify('Active job is aborted');
-        const job = jobs[tab.id];
-        delete jobs[tab.id];
-        job.abort();
-      }
-    });
+  else if (request.method === 'open-add') {
+    console.log(request);
+    onClicked(sender.tab, request.jobs);
   }
+});
 
-  if (!segments[tab.id]) {
-    return notify('No HLS stream is detected for this tab');
-  }
+const badge = (tabId, text) => chrome.browserAction.setBadgeText({
+  tabId,
+  text
+});
 
-  const playlists = {};
-  Object.keys(segments[tab.id]).forEach(url => {
-    const playlist = url.split('/').pop().split(/[?#]/)[0].replace('.m3u8', '');
-    playlists[playlist] = playlists[playlist] || [];
-    playlists[playlist].push(url);
-  });
-  for (const key of Object.keys(playlists)) {
-    playlists[key].sort((a, b) => {
-      const aa = attributes[tab.id] ? attributes[tab.id][a] : null;
-      const ab = attributes[tab.id] ? attributes[tab.id][b] : null;
-
-      if (aa && ab && aa.RESOLUTION && ab.RESOLUTION) {
-        return ab.RESOLUTION.width - aa.RESOLUTION.width;
-      }
-      if (aa && aa.RESOLUTION) {
-        return -1;
-      }
-      if (ab && ab.RESOLUTION) {
-        return +1;
-      }
-    });
-  }
-  const list = [];
-  for (const playlist of Object.keys(playlists).sort((a, b) => {
-    const att = attributes[tab.id];
-    const aa = playlists[a].filter(s => att[s]).filter(s => att[s].RESOLUTION).sort((a, b) => {
-      return att[a].RESOLUTION.width - att[b].RESOLUTION.width;
-    }).shift();
-    const ab = playlists[b].filter(s => att[s]).filter(s => att[s].RESOLUTION).sort((a, b) => {
-      return att[a].RESOLUTION.width - att[b].RESOLUTION.width;
-    }).shift();
-
-    if (aa && ab) {
-      return att[ab].RESOLUTION.width - att[aa].RESOLUTION.width;
-    }
-    if (aa) {
-      return -1;
-    }
-    if (ab) {
-      return 1;
-    }
-  })) {
-    for (const url of playlists[playlist]) {
-      list.push([playlist, url]);
-    }
-  }
-  const msg = [];
-  list.forEach(([playlist, url], i) => {
-    const attribute = attributes[tab.id] ? attributes[tab.id][url] : null;
-    const segment = segments[tab.id][url];
-    let extension = 'NA';
-    if (segment[0].uri.indexOf('.') !== -1) {
-      extension = segment[0].uri.split('.').pop().split('?')[0].toUpperCase();
-    }
-    const num = ('0' + (i + 1)).substr(-2);
-    if (attribute && attribute.RESOLUTION) {
-      const {width, height} = attribute.RESOLUTION;
-      msg.push(`${num}. [${playlist.substr(-10)}] ${extension} ${width}x${height} - ${segment.length} segments`);
-    }
-    else {
-      msg.push(`${num}. [${playlist.substr(-10)}] ${extension} Stream - ${segment.length} segments`);
-    }
-  });
-
-  chrome.tabs.executeScript({
-    code: `{
-      const msg = ${JSON.stringify(msg)}.join('\\n');
-      prompt('Select n stream:\\n\\n' + msg, 1);
-    }`,
-    runAt: 'document_start'
-  }, arr => {
-    if (arr && arr.length) {
-      const index = arr[0];
-      if (list[Number(index) - 1] && list[Number(index) - 1][1]) {
-        const segment = segments[tab.id][list[Number(index) - 1][1]];
-        let extension = '';
-        if (segment[0].uri.indexOf('.') !== -1) {
-          extension = segment[0].uri.split('.').pop().split('?')[0];
+const timer = {
+  id: null,
+  count: 0,
+  tick() {
+    for (const id of Object.keys(ds)) {
+      manager.search({
+        id
+      }, ([d]) => {
+        if (d) {
+          let p = d.m3u8.current / d.m3u8.count * 100;
+          if (d.bytesReceived) {
+            p += (d.bytesReceived / d.totalBytes) / d.m3u8.count * 100;
+          }
+          badge(ds[id].tabId, p.toFixed(0) + '%');
         }
-        const controls = {};
-        jobs[tab.id] = controls;
-        getSegments(tab.title, segment, badge, controls).then(o => {
-          const url = URL.createObjectURL(o.blob);
-          const filename = o.properties.filename + '.' + extension || o.properties.fileextension || 'mkv';
-          chrome.downloads.download({
-            url,
-            filename
-          }, () => {
-            URL.revokeObjectURL(url);
-            badge(Object.keys(segments[tab.id]).length + '');
-          });
-        }).catch(e => {
-          badge('E');
-          console.warn(e);
-        }).finally(() => delete jobs[tab.id]);
-      }
-      else if (index) {
-        console.log(index, Number(index) - 1, list[Number(index) - 1]);
-        notify('Selected index is out of range');
-      }
+      });
     }
-  });
-});
-chrome.tabs.onRemoved.addListener(tabId => {
-  if (jobs[tabId]) {
-    notify('Active job is aborted');
-    jobs[tabId].abort();
+  },
+  start() {
+    clearInterval(timer.id);
+    timer.id = setInterval(timer.tick, 1000);
+  },
+  stop() {
+    clearInterval(timer.id);
+  },
+  check() {
+    if (timer.count === 1) {
+      timer.start();
+    }
+    else if (timer.count === 0) {
+      timer.stop();
+    }
   }
-});
-chrome.webNavigation.onCommitted.addListener(d => {
-  if (d.frameId === 0 && jobs[d.tabId]) {
-    notify('Active job is aborted');
-    jobs[d.tabId].abort();
+};
+// remove when done
+manager.onChanged.addListener(d => {
+  if (ds[d.id]) {
+    if ('native' in d || 'error' in d) {
+      timer.count -= 1;
+      timer.check();
+      badge(ds[d.id].tabId, '');
+      delete ds[d.id];
+    }
+  }
+  // delete all none native jobs that are not handled anymore
+  else if ('filename' in d && manager.native(d.id) === false) {
+    console.log('removing an old job', d);
+    manager.erase(d);
   }
 });
 
+// conext menu
 chrome.contextMenus.create({
   title: 'Parse with Live Stream Downloader',
   contexts: ['link'],
   targetUrlPatterns: ['*://*/*.m3u8*'],
-  onclick: (info, tab) => inspect({
-    tabId: tab.id,
-    frameId: info.frameId,
-    url: info.linkUrl
-  })
+  onclick: (info, tab) => onClicked(tab, [{
+    link: info.linkUrl
+  }])
 });
 chrome.contextMenus.create({
   title: 'Parse a Local M3U8 File with Live Stream Downloader',
@@ -304,8 +262,12 @@ chrome.contextMenus.create({
                      'height: 200px; box-shadow: 0 1px 6px 0 rgba(32,33,36,0.28); z-index: 2147483647;';
       iframe.src = chrome.runtime.getURL('/data/scripts/user.html');
       document.body.appendChild(iframe);
-      console.log(iframe);
     }`
+  }, () => {
+    const lastError = chrome.runtime.lastError;
+    if (lastError) {
+      notify(lastError.message);
+    }
   })
 });
 

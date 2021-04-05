@@ -247,6 +247,16 @@ chrome.contextMenus.create({
   }])
 });
 chrome.contextMenus.create({
+  title: 'Test HLS Parsing',
+  contexts: ['browser_action'],
+  targetUrlPatterns: ['*://*/*'],
+  onclick() {
+    chrome.tabs.create({
+      url: 'https://webbrowsertools.com/test-download-with/'
+    });
+  }
+});
+chrome.contextMenus.create({
   title: 'Parse a Local M3U8 File with Live Stream Downloader',
   contexts: ['browser_action', 'page'],
   onclick: () => chrome.tabs.executeScript({
@@ -285,10 +295,11 @@ chrome.contextMenus.create({
         if (reason === 'install' || (prefs.faqs && reason === 'update')) {
           const doUpdate = (Date.now() - prefs['last-update']) / 1000 / 60 / 60 / 24 > 45;
           if (doUpdate && previousVersion !== version) {
-            tabs.create({
+            tabs.query({active: true, currentWindow: true}, tbs => tabs.create({
               url: page + '?version=' + version + (previousVersion ? '&p=' + previousVersion : '') + '&type=' + reason,
-              active: reason === 'install'
-            });
+              active: reason === 'install',
+              ...(tbs && tbs.length && {index: tbs[0].index + 1})
+            }));
             storage.local.set({'last-update': Date.now()});
           }
         }

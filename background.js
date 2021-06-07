@@ -135,15 +135,19 @@ chrome.runtime.onMessage.addListener((request, sender, response) => {
   if (request.method === 'add-jobs') {
     if (request.jobs.length) {
       (async () => {
-        for (const {link, links, keys, filename, threads} of request.jobs) {
+        for (const {link, referrer, links, base, keys, filename, threads} of request.jobs) {
           const job = {
             url: link,
-            filename
+            filename,
+            referrer: referrer
           };
           if (links) {
             delete job.url;
             job.urls = links;
             job.keys = keys;
+            if (base) {
+              job.urls = job.urls.map(s => s.startsWith('http') ? s : base + s);
+            }
           }
           timer.count += 1;
           manager.download(job, id => {

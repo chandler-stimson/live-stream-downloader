@@ -1,6 +1,6 @@
 {
   "manifest_version": 2,
-  "version": "0.1.5",
+  "version": "0.1.6",
   "name": "Live Stream Downloader",
   "description": "Detect and Download M3U8 HLS Streams (HTTP Live Stream) in multiple threads to your local disk",
   "permissions": [
@@ -44,7 +44,7 @@
     "512": "data/icons/512.png"
   },
   "browser_action": {
-    "default_title": "Download a new HLS Stream or Abort active tab's Job"
+    "default_title": "Download HLS Streams or Abort active tab's Jobs"
   },
   "web_accessible_resources": [
     "data/scripts/user.html"

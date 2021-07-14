@@ -38,6 +38,11 @@ const active = tabId => chrome.browserAction.setIcon({
 const webRequest = {
   observe(d) {
     if (d.tabId > 0) {
+      // hard-coded exception list
+      if (d.url.indexOf('.globo.com') !== -1) {
+        return console.warn('This request is skipped');
+      }
+
       cache[d.tabId] = cache[d.tabId] || {};
       cache[d.tabId][d.url] = d.frameId;
       active(d.tabId);
@@ -127,7 +132,7 @@ const onClicked = (tab, jobs) => {
     });
   }
 };
-chrome.browserAction.onClicked.addListener(onClicked);
+chrome.browserAction.onClicked.addListener(tab => onClicked(tab));
 
 const ds = {};
 
@@ -180,7 +185,6 @@ chrome.runtime.onMessage.addListener((request, sender, response) => {
     });
   }
   else if (request.method === 'open-add') {
-    console.log(request);
     onClicked(sender.tab, request.jobs);
   }
 });

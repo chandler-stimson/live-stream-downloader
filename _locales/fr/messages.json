@@ -1,0 +1,5 @@
+{
+  "description": {
+    "message": "Détectez et téléchargez les flux HLS M3U8 (HTTP Live Stream) en plusieurs fils sur votre disque local."
+  }
+}

@@ -1,8 +1,9 @@
 {
   "manifest_version": 2,
-  "version": "0.1.6",
+  "version": "0.1.7",
   "name": "Live Stream Downloader",
-  "description": "Detect and Download M3U8 HLS Streams (HTTP Live Stream) in multiple threads to your local disk",
+  "description": "__MSG_description__",
+  "default_locale": "en",
   "permissions": [
     "storage",
     "webRequest",

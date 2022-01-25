@@ -171,7 +171,7 @@ const download = async (segments, file) => {
       }
     }
 
-    document.body.dataset.mode = 'ready';
+    document.body.dataset.mode = 'done';
   }
   catch (e) {
     error(e);

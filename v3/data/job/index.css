@@ -8,6 +8,9 @@ body {
 body[data-mode=error] {
   background-color: #ffdcdc;
 }
+body[data-mode=done] {
+  background-color: #f1ffed;
+}
 body[data-mode=parse],
 body[data-mode=download] {
   pointer-events: none;

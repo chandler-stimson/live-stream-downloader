@@ -1,0 +1,5 @@
+{
+  "description": {
+    "message": "Detect and Download M3U8 HLS Streams (HTTP Live Stream) in multiple threads to your local disk"
+  }
+}

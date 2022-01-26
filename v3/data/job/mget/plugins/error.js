@@ -1,3 +1,22 @@
+/**
+    MyGet - A multi-thread downloading library
+    Copyright (C) 2014-2022 [Chandler Stimson]
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the Mozilla Public License as published by
+    the Mozilla Foundation, either version 2 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Mozilla Public License for more details.
+    You should have received a copy of the Mozilla Public License
+    along with this program.  If not, see {https://www.mozilla.org/en-US/MPL/}.
+
+    GitHub: https://github.com/chandler-stimson/live-stream-downloader/
+    Homepage: https://add0n.com/hls-downloader.html
+*/
+
 /* global MyGet */
 
 /*
@@ -10,7 +29,7 @@ class EGet extends MyGet {
     super(...args);
 
     this.options['error-tolerance'] = 10; // number; number of times a single uri can throw error before breaking
-    this.options['error-delay'] = 500; // ms; delay before restarting the segment
+    this.options['error-delay'] = 300; // ms; min-delay before restarting the segment
     this.errors = new Map();
   }
   async pipe(...args) {
@@ -21,12 +40,13 @@ class EGet extends MyGet {
       }
       catch (e) {
         console.log('pipe is broken', e);
-        if (n > this.options['error-tolerance']) {
+        if (n > this.options['error-tolerance'] || this.controller.signal.aborted) {
           throw e;
         }
         this.actives -= 1;
       }
-      await new Promise(resolve => setTimeout(resolve, this.options['error-delay']));
+      const delay = Math.min(5000, this.options['error-delay'] * n);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
 }

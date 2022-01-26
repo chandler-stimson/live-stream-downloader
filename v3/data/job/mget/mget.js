@@ -1,3 +1,22 @@
+/**
+    MyGet - A multi-thread downloading library
+    Copyright (C) 2014-2022 [Chandler Stimson]
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the Mozilla Public License as published by
+    the Mozilla Foundation, either version 2 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Mozilla Public License for more details.
+    You should have received a copy of the Mozilla Public License
+    along with this program.  If not, see {https://www.mozilla.org/en-US/MPL/}.
+
+    GitHub: https://github.com/chandler-stimson/live-stream-downloader/
+    Homepage: https://add0n.com/hls-downloader.html
+*/
+
 /* transfer the stream only when conditions met */
 class PolicyStream extends window.TransformStream {
   constructor(size) {
@@ -50,7 +69,6 @@ class BasicWriter {
     }, {});
   }
 }
-self.BasicWriter = BasicWriter;
 self.MemoryWriter = BasicWriter;
 
 /* a basic multi-thread, multi segment Get implementation */
@@ -61,14 +79,6 @@ class MGet {
     this.actives = 0;
     this.sizes = new Map(); // track segment offsets
     this.cache = {}; // store chunks of each segment in an array
-  }
-  /* get called before a segment is started */
-  prepare(segment, position) {
-    return Promise.resolve();
-  }
-  /* get called when a segment is fully fetched */
-  flush(segment, position) {
-    return Promise.resolve();
   }
   /* get called once per new segment */
   headers(segment, position, response) {
@@ -91,9 +101,7 @@ class MGet {
           setTimeout(() => this.number() && segments.length && start(), 5000);
 
           try {
-            await this.prepare(segment, position - 1);
             await this.pipe(segment, params, position - 1);
-            await this.flush(segment, position - 1);
             start();
           }
           catch (e) {
@@ -122,6 +130,9 @@ class MGet {
     let offset = 0;
     for (let n = 0; n < position; n += 1) {
       offset += this.sizes.get(n);
+    }
+    if (isNaN(offset)) {
+      throw Error('OFFSET_ERROR');
     }
 
     return offset + (segment.range?.start || 0);
@@ -243,7 +254,7 @@ class MGet {
   }
 }
 MGet.OPTIONS = {
-  'thread-size': 1 * 1024 * 1024, // bytes; size of each segment
+  'thread-size': 5 * 1024 * 1024, // bytes; size of each segment
   'threads': 3, // number; max number of simultaneous threads
   'next-segment-wait': 2000 // ms; time to wait after a segment is started, before considering the next segment
 };

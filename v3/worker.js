@@ -1,4 +1,4 @@
-chrome.action.onClicked.addListener(async tab => {
+const open = async (tab, extra = []) => {
   const win = await chrome.windows.getCurrent();
 
   chrome.storage.local.get({
@@ -7,10 +7,16 @@ chrome.action.onClicked.addListener(async tab => {
     left: win.left + Math.round((win.width - 800) / 2),
     top: win.top + Math.round((win.height - 300) / 2)
   }, prefs => {
+    const args = new URLSearchParams();
+    args.set('tabId', tab.id);
+    args.set('title', tab.title);
+    args.set('href', tab.url);
+    for (const {key, value} of extra) {
+      args.set(key, value);
+    }
+
     chrome.windows.create({
-      url: 'data/job/index.html?tabId=' + tab.id +
-        '&title=' + encodeURIComponent(tab.title) +
-        '&href=' + encodeURIComponent(tab.url),
+      url: 'data/job/index.html?' + args.toString(),
       width: prefs.width,
       height: prefs.height,
       left: prefs.left,
@@ -18,57 +24,65 @@ chrome.action.onClicked.addListener(async tab => {
       type: 'popup'
     });
   });
+};
+
+chrome.action.onClicked.addListener(async tab => {
+  open(tab);
 });
 
-const observe = d => chrome.storage.session.get({
-  [d.tabId]: []
-}, prefs => {
-  if (prefs[d.tabId].indexOf(d.url) === -1) {
-    const hrefs = prefs[d.tabId].map(o => o.url);
-
-    if (hrefs.indexOf(d.url) === -1) {
-      prefs[d.tabId].push({
-        url: d.url,
-        initiator: d.initiator,
-        responseHeaders: d.responseHeaders
-      });
-
-      chrome.storage.session.set(prefs);
-
-      chrome.action.setIcon({
-        tabId: d.tabId,
-        path: {
-          '16': 'data/icons/active/16.png',
-          '32': 'data/icons/active/32.png',
-          '48': 'data/icons/active/48.png'
-        }
-      });
-      chrome.action.setBadgeText({
-        tabId: d.tabId,
-        text: prefs[d.tabId].length + ''
-      });
-    }
+const observe = d => {
+  // hard-coded exception list
+  if (d.url.indexOf('.globo.com') !== -1) {
+    return console.warn('This request is not being processed');
   }
-});
+
+  chrome.storage.session.get({
+    [d.tabId]: []
+  }, prefs => {
+    if (prefs[d.tabId].indexOf(d.url) === -1) {
+      const hrefs = prefs[d.tabId].map(o => o.url);
+
+      if (hrefs.indexOf(d.url) === -1) {
+        prefs[d.tabId].push({
+          url: d.url,
+          initiator: d.initiator,
+          responseHeaders: d.responseHeaders
+        });
+
+        chrome.storage.session.set(prefs);
+
+        chrome.action.setIcon({
+          tabId: d.tabId,
+          path: {
+            '16': 'data/icons/active/16.png',
+            '32': 'data/icons/active/32.png',
+            '48': 'data/icons/active/48.png'
+          }
+        });
+        chrome.action.setBadgeText({
+          tabId: d.tabId,
+          text: prefs[d.tabId].length + ''
+        });
+      }
+    }
+  });
+};
+
+/* clear old list on remove */
 chrome.tabs.onRemoved.addListener(tabId => {
   // remove jobs
   chrome.storage.session.remove(tabId + '');
   // clear rules
-  chrome.declarativeNetRequest.getSessionRules().then(rules => {
-    const ids = rules.filter(r => r.condition.tabIds.indexOf(tabId) !== -1).map(r => r.id);
-
-    if (ids.length) {
-      chrome.declarativeNetRequest.updateSessionRules({
-        removeRuleIds: ids
-      });
-    }
+  chrome.declarativeNetRequest.updateSessionRules({
+    removeRuleIds: [tabId]
   });
 });
 
-// clear old list
-chrome.webRequest.onBeforeRequest.addListener(d => chrome.storage.session.remove(d.tabId + ''), {
-  urls: ['*://*/*'],
-  types: ['main_frame']
+/* clear old list on reload */
+chrome.tabs.onUpdated.addListener((tabId, info) => {
+  if (info.status === 'loading') {
+    chrome.storage.session.remove(tabId + '');
+  }
 });
 // find media
 chrome.webRequest.onHeadersReceived.addListener(observe, {
@@ -83,6 +97,86 @@ chrome.webRequest.onHeadersReceived.addListener(observe, {
   ],
   types: ['xmlhttprequest']
 }, ['responseHeaders']);
+
+/* context menu */
+{
+  const once = () => {
+    chrome.contextMenus.create({
+      title: 'Download with Live Stream Downloader',
+      id: 'download-link',
+      contexts: ['link'],
+      targetUrlPatterns: [
+        '*://*/*.flv*', '*://*/*.avi*', '*://*/*.wmv*', '*://*/*.mov*', '*://*/*.mp4*', '*://*/*.pcm*',
+        '*://*/*.wav*', '*://*/*.mp3*', '*://*/*.aac*', '*://*/*.ogg*', '*://*/*.wma*', '*://*/*.m3u8*'
+      ]
+    });
+    chrome.contextMenus.create({
+      title: 'Download with Live Stream Downloader',
+      id: 'download-media',
+      contexts: ['audio', 'video']
+    });
+    chrome.contextMenus.create({
+      title: 'Clear Detected Media List',
+      id: 'clear',
+      contexts: ['action', 'browser_action'],
+      targetUrlPatterns: ['*://*/*']
+    });
+    chrome.contextMenus.create({
+      title: 'Test Video Downloading',
+      id: 'test',
+      contexts: ['action', 'browser_action'],
+      targetUrlPatterns: ['*://*/*']
+    });
+  };
+  chrome.runtime.onInstalled.addListener(once);
+  chrome.runtime.onStartup.addListener(once);
+}
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'test') {
+    chrome.tabs.create({
+      url: 'https://webbrowsertools.com/test-download-with/'
+    });
+  }
+  else if (info.menuItemId === 'clear') {
+    chrome.storage.session.remove(tab.id + '');
+    chrome.action.setIcon({
+      tabId: tab.id,
+      path: {
+        '16': 'data/icons/16.png',
+        '32': 'data/icons/32.png',
+        '48': 'data/icons/48.png'
+      }
+    });
+    chrome.action.setBadgeText({
+      tabId: tab.id,
+      text: ''
+    });
+  }
+  else if (info.menuItemId === 'download-link') {
+    open(tab, [{
+      key: 'append',
+      value: info.linkUrl
+    }]);
+  }
+  else if (info.menuItemId === 'download-media') {
+    open(tab, [{
+      key: 'append',
+      value: info.srcUrl
+    }]);
+  }
+});
+
+chrome.runtime.onMessage.addListener((request, sender, response) => {
+  if (request.method === 'get-jobs') {
+    chrome.storage.session.get({
+      [request.tabId]: []
+    }, prefs => {
+      response(prefs[request.tabId]);
+    });
+
+    return true;
+  }
+});
 
 /* FAQs & Feedback */
 {

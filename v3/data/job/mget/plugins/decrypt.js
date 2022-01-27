@@ -20,82 +20,76 @@
 /* global MyGet */
 
 /*
-  write to a temp cache instead of "this.cache"
-  on close, writes to the "this.cache" using "MemoryWriter"
+  write to "basic-cache" instead of "cache" using "BasicWriter"
+  on flush, writes to the "cache" using "MemoryWriter"
 */
 
 class DGet extends MyGet {
+  constructor(...args) {
+    super(...args);
+
+    this['basic-cache'] = {};
+  }
+  static merge(array) {
+    // make sure to remove possible duplicated chunks (in case of error, the same chunk if fetched one more time)
+    const chunks = {};
+    for (const {offset, chunk} of array) {
+      if (chunks[offset]) {
+        if (chunks[offset].byteLength < chunk.byteLength) {
+          chunks[offset] = chunk;
+        }
+      }
+      else {
+        chunks[offset] = chunk;
+      }
+    }
+    const offsets = Object.keys(chunks).map(Number);
+    offsets.sort((a, b) => a - b);
+
+    return {
+      offsets,
+      chunks: offsets.map(a => chunks[a])
+    };
+  }
   writer(segment, position) {
     // only use "basic-cache" when we are dealing with encrypted segment
     if (segment.key) {
-      if (segment.key.method.toUpperCase() !== 'AES-128') {
-        throw Error('UNSUPPORTED_KEY_' + segment.key.method);
+      if (segment.key.method.toUpperCase() === 'AES-128') {
+        const offset = this.offset(segment, position);
+        return new self.BasicWriter(position, offset, this['basic-cache']);
       }
-
-      const offset = this.offset(segment, position);
-      const ocache = this.cache;
-
-      const M = class {
-        constructor(offset = 0) {
-          const cache = [];
-
-          return new WritableStream({
-            start() {},
-            write(chunk) {
-              cache.push({
-                offset,
-                chunk
-              });
-              offset += chunk.byteLength;
-
-              return Promise.resolve();
-            },
-            async close() {
-              const {href} = new URL(segment.key.uri, segment.base);
-
-              // try 5 times to get the key
-              let value;
-              for (let n = 0; ; n += 1) {
-                try {
-                  value = await fetch(href).then(r => r.arrayBuffer());
-                  break;
-                }
-                catch (e) {
-                  if (n < 5) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                  }
-                  else {
-                    throw Error('FAILED_TO_GET_KEY');
-                  }
-                }
-              }
-
-              const chunks = cache.map(o => o.chunk);
-              const encrypted = await (new Blob(chunks)).arrayBuffer();
-
-              const decrypted = await crypto.subtle.importKey('raw', value, {
-                name: 'AES-CBC',
-                length: 128
-              }, false, ['decrypt']).then(importedKey => crypto.subtle.decrypt({
-                name: 'AES-CBC',
-                iv: new ArrayBuffer(16)
-              }, importedKey, encrypted));
-
-              const offset = cache[0].offset;
-
-              const stream = new self.MemoryWriter(position, offset, ocache);
-              const writable = await stream.getWriter();
-              await writable.write(new Uint8Array(decrypted));
-            }
-          }, {});
-        }
-      };
-
-      const stream = new M(offset);
-      return stream;
+      else {
+        throw Error('UNSUPPORTED_ENCRYPTION');
+      }
     }
     else {
       return super.writer(segment, position);
+    }
+  }
+  async flush(segment, position) {
+    if (segment.key) {
+      const {href} = new URL(segment.key.uri, segment.base);
+      const value = await fetch(href).then(r => r.arrayBuffer());
+
+      const {offsets, chunks} = DGet.merge(this['basic-cache'][position]);
+      delete this['basic-cache'][position];
+      const encrypted = await (new Blob(chunks)).arrayBuffer();
+
+      const decrypted = await crypto.subtle.importKey('raw', value, {
+        name: 'AES-CBC',
+        length: 128
+      }, false, ['decrypt']).then(importedKey => crypto.subtle.decrypt({
+        name: 'AES-CBC',
+        iv: new ArrayBuffer(16)
+      }, importedKey, encrypted));
+
+      // write to the original cache
+      const stream = new self.MemoryWriter(position, offsets[0], this.cache);
+      const writable = await stream.getWriter();
+      await writable.write(new Uint8Array(decrypted));
+    }
+    else {
+      return;
     }
   }
 }

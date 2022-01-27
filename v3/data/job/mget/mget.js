@@ -69,6 +69,7 @@ class BasicWriter {
     }, {});
   }
 }
+self.BasicWriter = BasicWriter;
 self.MemoryWriter = BasicWriter;
 
 /* a basic multi-thread, multi segment Get implementation */
@@ -80,8 +81,16 @@ class MGet {
     this.sizes = new Map(); // track segment offsets
     this.cache = {}; // store chunks of each segment in an array
   }
+  /* get called before a segment is started */
+  prepare(segment, position) {
+    return Promise.resolve();
+  }
   /* get called once per new segment */
   headers(segment, position, response) {
+    return Promise.resolve();
+  }
+  /* get called when a segment is fully fetched */
+  flush(segment, position) {
     return Promise.resolve();
   }
   /* get called when a new chunk is written */
@@ -101,7 +110,10 @@ class MGet {
           setTimeout(() => this.number() && segments.length && start(), 5000);
 
           try {
-            await this.pipe(segment, params, position - 1);
+            const p = position - 1;
+            await this.prepare(segment, p);
+            await this.pipe(segment, params, p);
+            await this.flush(segment, p);
             start();
           }
           catch (e) {

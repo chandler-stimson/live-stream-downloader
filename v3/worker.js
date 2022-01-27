@@ -3,9 +3,9 @@ const open = async (tab, extra = []) => {
 
   chrome.storage.local.get({
     width: 800,
-    height: 300,
+    height: 500, // for Windows we need this
     left: win.left + Math.round((win.width - 800) / 2),
-    top: win.top + Math.round((win.height - 300) / 2)
+    top: win.top + Math.round((win.height - 500) / 2)
   }, prefs => {
     const args = new URLSearchParams();
     args.set('tabId', tab.id);

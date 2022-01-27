@@ -45,6 +45,7 @@ body[data-mode=download]::before {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 2;
 }
 
 select,
@@ -64,7 +65,7 @@ input {
   border: solid 1px rgba(0, 0, 0, 0.25);
 }
 input[type=button]:disabled {
-  opacity: 0.5;
+  opacity: 0.2;
 }
 textarea {
   width: 100%;
@@ -89,6 +90,14 @@ a:visited {
 
 .entry {
   display: contents;
+}
+.entry.done span {
+  color: #007e00;
+  font-weight: bold;
+}
+.entry.error span {
+  color: #db0000;
+  font-weight: bold;
 }
 
 #hrefs {

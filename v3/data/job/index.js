@@ -184,11 +184,12 @@ const download = async (segments, file) => {
         const input = document.querySelector('[data-active=true] input[type=button]');
         if (input) {
           input.disabled = false;
-          input.onclick = () => {
+          input.onclick = e => {
             if (confirm(`Rename media from "${file.name}" to "${name}"?
 
 -> This will overwrite an existing file with the same name.`)) {
               file.rename(name);
+              e.target.disabled = true;
             }
           };
         }
@@ -319,8 +320,10 @@ document.getElementById('hrefs').onsubmit = async e => {
         await parser(div.o.url, file);
       }
     }
+    div.classList.add('done');
   }
   catch (e) {
+    div.classList.add('error');
     error(e);
   }
   net.remove();

@@ -39,7 +39,7 @@ class EGet extends MyGet {
         return r;
       }
       catch (e) {
-        console.log('pipe is broken', e);
+        console.log('pipe is broken', e.message);
         if (n > this.options['error-tolerance'] || this.controller.signal.aborted) {
           throw e;
         }

@@ -8,16 +8,20 @@ body {
 body[data-mode=error] {
   background-color: #ffdcdc;
 }
-body[data-mode=empty]::before {
+body::before {
   position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  content: 'No media detected for this tab. You can drop a local M3U8 manifest to download the stream';
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 30px;
+  text-align: center;
+  z-index: 2;
+  line-height: 1.25;
+}
+
+body[data-mode=empty]::before {
+  content: 'There is no media on this tab. You can drop HTML links, selected text from this page to extract media links, or local M3U8 manifest to start downloading them.';
 }
 body[data-mode=done] {
   background-color: #f1ffed;
@@ -27,25 +31,16 @@ body[data-mode=download] {
   pointer-events: none;
 }
 body[data-mode=download]::before {
-  content: 'Do not close this window. Downloading your Job...';
+  content: 'Download is in progress. Please do not close this window...';
 }
 body[data-mode=parse]::before {
   content: 'Parsing M3U8 manifest...';
 }
 body[data-mode=parse]::before,
 body[data-mode=download]::before {
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
   color: #fff;
   font-size: 18px;
   background-color: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
 }
 
 select,
@@ -102,7 +97,7 @@ a:visited {
 
 #hrefs {
   display: grid;
-  grid-template-columns: minmax(auto, 120px) repeat(2, min-content) 1fr min-content min-content;
+  grid-template-columns: minmax(auto, 120px) repeat(2, min-content) 1fr repeat(3, min-content);
   grid-gap: 10px 0;
   align-items: center;
   overflow: hidden;

@@ -31,8 +31,18 @@ const build = os => {
 
     clone.querySelector('[data-id=name]').textContent = clone.querySelector('[data-id=name]').title = meta.name;
     clone.querySelector('[data-id=ext]').textContent = meta.ext;
-    clone.querySelector('[data-id=size]').textContent = MyGet.size(r.headers.get('Content-Length') || '0');
+    if (r.headers.has('Content-Length')) {
+      clone.querySelector('[data-id=size]').textContent = MyGet.size(r.headers.get('Content-Length') || '0');
+    }
+    else {
+      clone.querySelector('[data-id=size]').textContent = 'N/A';
+    }
     clone.querySelector('[data-id=href]').textContent = clone.querySelector('[data-id=href]').title = (o.url || 'N/A');
+
+    clone.querySelector('input[data-id=copy]').onclick = e => navigator.clipboard.writeText(o.url).then(() => {
+      e.target.value = 'Done';
+      setTimeout(() => e.target.value = 'Copy', 750);
+    }).catch(e => alert(e.message));
 
     div.response = r;
     div.meta = meta;
@@ -40,7 +50,8 @@ const build = os => {
 
     document.getElementById('hrefs').appendChild(div);
   }
-  document.body.dataset.mode = os.length ? 'ready' : 'empty';
+
+  document.body.dataset.mode = document.querySelector('form .entry') ? 'ready' : 'empty';
 };
 
 chrome.tabs.query({
@@ -93,6 +104,11 @@ const error = e => {
 
 const net = {
   async add(initiator) {
+    if (initiator.startsWith('http') === false) {
+      console.log('referer skipped', initiator);
+      return;
+    }
+
     await chrome.declarativeNetRequest.updateSessionRules({
       removeRuleIds: [cId],
       addRules: [{
@@ -121,11 +137,6 @@ const net = {
 const download = async (segments, file) => {
   document.body.dataset.mode = 'download';
 
-  // segment with map
-  if (segments[0].map) {
-    throw Error('NOT_SUPPORTED_M3U8_MAP');
-  }
-
   // remove duplicated segments (e.g. video/fMP4)
   const links = [];
   segments = segments.filter(s => {
@@ -135,6 +146,17 @@ const download = async (segments, file) => {
     }
     return false;
   });
+
+  // segment with initialization map
+  segments = segments.map(s => {
+    if (s.map && s.map.uri) {
+      return [{
+        ...s,
+        uri: s.map.uri
+      }, s];
+    }
+    return s;
+  }).flat();
 
   const stat = {
     fetched: 0,
@@ -181,7 +203,7 @@ const download = async (segments, file) => {
     if (n.meta.name && n.meta.ext) {
       const name = n.meta.name + '.' + n.meta.ext;
       if (name !== file.name) {
-        const input = document.querySelector('[data-active=true] input[type=button]');
+        const input = document.querySelector('[data-active=true] input[data-id=rename]');
         if (input) {
           input.disabled = false;
           input.onclick = e => {
@@ -211,7 +233,18 @@ const parser = async (manifest, file, href) => {
       href = manifest;
     }
 
-    const o = manifest.startsWith('http') ? new URL(manifest) : new URL(manifest, href || prompt(`What is the base URL for "${manifest}"`));
+    let o;
+    if (manifest.startsWith('http')) {
+      o = new URL(manifest);
+    }
+    else if (href && href.startsWith('http')) {
+      o = new URL(manifest, href);
+    }
+    else {
+      href = prompt(`What is the base URL for "${manifest}"`);
+      o = new URL(manifest, href);
+    }
+
     manifest = await fetch(o.href).then(r => {
       if (r.ok) {
         return r.text();
@@ -239,9 +272,9 @@ const parser = async (manifest, file, href) => {
         msgs.push(playlist.uri.substr(-30));
       }
     }
-    const n = prompt('Select one stream:\n\n' + msgs.map((m, n) => n + '. ' + m).join('\n'), 0);
+    const n = (playlists.length > 1 ? prompt('Select one stream:\n\n' + msgs.map((m, n) => n + '. ' + m).join('\n'), 0) : 0) || 0;
 
-    if (n && isNaN(n) === false) {
+    if (isNaN(n) === false) {
       const v = playlists[Number(n)];
       if (v) {
         try {
@@ -287,7 +320,7 @@ document.getElementById('hrefs').onsubmit = async e => {
       }]
     };
     // this way, the file can get played will download is in progress
-    if (div.meta.ext === 'm3u8') {
+    if (div.meta.ext === 'm3u8' || div.meta.ext === '') {
       div.meta.ext = 'mkv';
       div.meta.mime = 'video/mkv';
     }

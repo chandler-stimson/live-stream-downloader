@@ -1,3 +1,8 @@
+// the headers that need to be recorded
+const HEADERS = ['content-length', 'accept-ranges', 'content-type', 'content-disposition'];
+// do not allow downloading from these resources
+const BLOCKED_LIST = ['.globo.com', '.gstatic.com'];
+
 const open = async (tab, extra = []) => {
   const win = await chrome.windows.getCurrent();
 
@@ -9,7 +14,7 @@ const open = async (tab, extra = []) => {
   }, prefs => {
     const args = new URLSearchParams();
     args.set('tabId', tab.id);
-    args.set('title', tab.title);
+    args.set('title', tab.title || 'This Page');
     args.set('href', tab.url);
     for (const {key, value} of extra) {
       args.set(key, value);
@@ -32,7 +37,7 @@ chrome.action.onClicked.addListener(async tab => {
 
 const observe = d => {
   // hard-coded exception list
-  if (d.url.indexOf('.globo.com') !== -1) {
+  if (BLOCKED_LIST.some(s => d.url.indexOf(s) !== -1)) {
     return console.warn('This request is not being processed');
   }
 
@@ -46,7 +51,7 @@ const observe = d => {
         prefs[d.tabId].push({
           url: d.url,
           initiator: d.initiator,
-          responseHeaders: d.responseHeaders
+          responseHeaders: d.responseHeaders.filter(o => HEADERS.indexOf(o.name.toLowerCase()) !== -1)
         });
 
         chrome.storage.session.set(prefs);

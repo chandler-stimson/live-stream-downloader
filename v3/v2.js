@@ -16,7 +16,6 @@ chrome.storage.session = chrome.storage.session || {
     }
   },
   remove(key) {
-    console.log(key, chrome.storage.cache);
     delete chrome.storage.cache[key];
   }
 };

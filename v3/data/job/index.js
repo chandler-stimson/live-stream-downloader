@@ -30,7 +30,7 @@ const build = os => {
     MyGet.guess(r, meta);
 
     clone.querySelector('[data-id=name]').textContent = clone.querySelector('[data-id=name]').title = meta.name;
-    clone.querySelector('[data-id=ext]').textContent = meta.ext;
+    clone.querySelector('[data-id=ext]').textContent = meta.ext || 'N/A';
     if (r.headers.has('Content-Length')) {
       clone.querySelector('[data-id=size]').textContent = MyGet.size(r.headers.get('Content-Length') || '0');
     }
@@ -186,7 +186,8 @@ const download = async (segments, file) => {
       }
     }
     else {
-      document.title = (stat.current / stat.total * 100).toFixed(1) + `% fetched [${stat.current}/${stat.total}]`;
+      document.title = (stat.current / stat.total * 100).toFixed(1) +
+        `% fetched [${stat.current}/${stat.total}] (${MyGet.size(stat.fetched)})`;
     }
   }, 500);
 
@@ -227,6 +228,11 @@ const download = async (segments, file) => {
 };
 
 const parser = async (manifest, file, href) => {
+  // data uri
+  if (manifest.startsWith('data:')) {
+    manifest = await fetch(manifest).then(r => r.text());
+  }
+
   // manifest is URL
   if (manifest.split('\n').length === 1) {
     if (!href) {
@@ -321,10 +327,11 @@ document.getElementById('hrefs').onsubmit = async e => {
     };
     // this way, the file can get played will download is in progress
     if (div.meta.ext === 'm3u8' || div.meta.ext === '') {
-      div.meta.ext = 'mkv';
-      div.meta.mime = 'video/mkv';
+      options.types[0].accept = {
+        'video/mkv': ['.mkv']
+      };
     }
-    if (div.meta.ext && div.meta.mime) {
+    else if (div.meta.ext && div.meta.mime) {
       options.types[0].accept = {
         [div.meta.mime]: ['.' + div.meta.ext]
       };
@@ -343,7 +350,11 @@ document.getElementById('hrefs').onsubmit = async e => {
       });
     }
     else {
-      if (div.o.url.indexOf('.m3u8') === -1) {
+      if (
+        div.meta.ext !== 'm3u8' &&
+        div.o.url.indexOf('.m3u8') === -1 &&
+        div.o.url.indexOf('format=m3u8') === -1
+      ) {
         document.title = 'Downloading ' + div.o.url;
         await download([{
           uri: div.o.url

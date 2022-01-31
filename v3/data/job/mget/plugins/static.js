@@ -19,6 +19,40 @@
 
 /* global MyGet */
 
+const MIME_TYPES = {
+  'image/jpeg': 'jpg',
+  'application/x-javascript': 'js',
+  'application/atom+xml': 'atom',
+  'application/rss+xml': 'rss',
+  'text/plain': 'txt',
+  'text/javascript': 'js',
+  'image/x-icon': 'ico',
+  'image/x-ms-bmp': 'bmp',
+  'image/svg+xml': 'svg',
+  'application/java-archive': 'jar',
+  'application/msword': 'doc',
+  'application/postscript': 'ps',
+  'application/vnd.ms-excel': 'xls',
+  'application/vnd.ms-powerpoint': 'ppt',
+  'application/x-7z-compressed': '7z',
+  'application/x-rar-compressed': 'rar',
+  'application/x-shockwave-flash': 'swf',
+  'application/x-xpinstall': 'xpi',
+  'application/xhtml+xml': 'xhtml',
+  'application/octet-stream': 'bin',
+  'application/binary': 'exe',
+  'audio/mpeg': 'mp3',
+  'audio/mpegurl': 'm3u8',
+  'video/3gpp': '3gp',
+  'video/mpeg': 'mpg',
+  'video/quicktime': 'mov',
+  'video/x-flv': 'flv',
+  'video/x-mng': 'mng',
+  'video/x-ms-asf': 'asf',
+  'video/x-ms-wmv': 'wmv',
+  'video/x-msvideo': 'avi'
+};
+
 class SGet extends MyGet {
   constructor(...args) {
     super(...args);
@@ -27,13 +61,21 @@ class SGet extends MyGet {
   /* guess filename and extension */
   static guess(resp, meta = {}) {
     const href = resp.url.split('#')[0].split('?')[0];
-    const fe = href.substring(href.lastIndexOf('/') + 1) || 'unknown';
+    if (href.startsWith('data:')) {
+      const mime = href.split('data:')[1].split(';')[0];
+      meta.ext = MIME_TYPES[mime] || mime.split('/')[1] || '';
+      meta.name = 'unknown';
+      meta.mime = mime;
+    }
+    else {
+      const fe = (href.substring(href.lastIndexOf('/') + 1) || 'unknown').slice(-100);
 
-    const e = /(.+)\.([^.]{1,5})*$/.exec(fe);
+      const e = /(.+)\.([^.]{1,5})*$/.exec(fe);
 
-    meta.name = e ? e[1] : fe;
-    meta.ext = e ? e[2] : '';
-    meta.mime = resp.headers.get('Content-Type') || 'application/binary';
+      meta.name = e ? e[1] : fe;
+      meta.mime = resp.headers.get('Content-Type') || '';
+      meta.ext = e ? e[2] : (MIME_TYPES[meta.mime] || meta.mime.split('/')[1] || '');
+    }
   }
   static size(bytes, si = false, dp = 1) {
     bytes = Number(bytes);

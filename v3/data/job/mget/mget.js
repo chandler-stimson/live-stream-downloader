@@ -162,6 +162,7 @@ class MGet {
     this.actives += 1;
 
     const {href} = new URL(segment.uri, segment.base || undefined);
+
     const request = new Request(href, {
       method: segment.method || 'GET'
     });

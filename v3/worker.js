@@ -30,10 +30,41 @@ const open = async (tab, extra = []) => {
     });
   });
 };
-
-chrome.action.onClicked.addListener(async tab => {
-  open(tab);
+chrome.action.onClicked.addListener(async tab => open(tab));
+chrome.action.setBadgeBackgroundColor({
+  color: '#666666'
 });
+
+const badge = (n, tabId) => {
+  if (n) {
+    chrome.action.setIcon({
+      tabId: tabId,
+      path: {
+        '16': 'data/icons/active/16.png',
+        '32': 'data/icons/active/32.png',
+        '48': 'data/icons/active/48.png'
+      }
+    });
+    chrome.action.setBadgeText({
+      tabId: tabId,
+      text: n + ''
+    });
+  }
+  else {
+    chrome.action.setIcon({
+      tabId: tabId,
+      path: {
+        '16': 'data/icons/16.png',
+        '32': 'data/icons/32.png',
+        '48': 'data/icons/48.png'
+      }
+    });
+    chrome.action.setBadgeText({
+      tabId: tabId,
+      text: ''
+    });
+  }
+};
 
 const observe = d => {
   // hard-coded exception list
@@ -53,21 +84,8 @@ const observe = d => {
           initiator: d.initiator,
           responseHeaders: d.responseHeaders.filter(o => HEADERS.indexOf(o.name.toLowerCase()) !== -1)
         });
-
         chrome.storage.session.set(prefs);
-
-        chrome.action.setIcon({
-          tabId: d.tabId,
-          path: {
-            '16': 'data/icons/active/16.png',
-            '32': 'data/icons/active/32.png',
-            '48': 'data/icons/active/48.png'
-          }
-        });
-        chrome.action.setBadgeText({
-          tabId: d.tabId,
-          text: prefs[d.tabId].length + ''
-        });
+        badge(prefs[d.tabId].length, d.tabId);
       }
     }
   });
@@ -87,6 +105,7 @@ chrome.tabs.onRemoved.addListener(tabId => {
 chrome.tabs.onUpdated.addListener((tabId, info) => {
   if (info.status === 'loading') {
     chrome.storage.session.remove(tabId + '');
+    badge(0, tabId);
   }
 });
 // find media

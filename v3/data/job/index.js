@@ -189,6 +189,7 @@ const download = async (segments, file) => {
       return super.monitor(...args);
     }
   };
+  console.log(n);
 
   const timer = setInterval(() => {
     // downloading a single file

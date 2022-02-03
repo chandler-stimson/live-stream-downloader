@@ -46,12 +46,10 @@ class DGet extends MyGet {
     const offsets = Object.keys(chunks).map(Number);
     offsets.sort((a, b) => a - b);
 
-    const r = {
+    return {
       offsets,
       chunks: offsets.map(a => chunks[a])
     };
-
-    return r;
   }
   writer(segment, position) {
     // only use "basic-cache" when we are dealing with encrypted segment

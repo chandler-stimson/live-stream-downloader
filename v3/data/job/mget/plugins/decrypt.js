@@ -46,10 +46,12 @@ class DGet extends MyGet {
     const offsets = Object.keys(chunks).map(Number);
     offsets.sort((a, b) => a - b);
 
-    return {
+    const r = {
       offsets,
       chunks: offsets.map(a => chunks[a])
     };
+
+    return r;
   }
   writer(segment, position) {
     // only use "basic-cache" when we are dealing with encrypted segment
@@ -69,15 +71,31 @@ class DGet extends MyGet {
   async flush(segment, position) {
     if (segment.key) {
       const {href} = new URL(segment.key.uri, segment.base || segment.uri);
-      const r = await fetch(href, {
-        'credentials': 'include'
-      });
-      if (r.ok === false) {
-        throw Error('CANNOT_FETCH_KEY');
+      let r;
+
+      // try to get the key multiple times
+      for (let n = 0; ; n += 1) {
+        try {
+          r = await fetch(href, {
+            'credentials': 'include'
+          });
+          if (r.ok) {
+            break;
+          }
+        }
+        catch (e) {
+          console.warn('key is broken', e.message);
+          if (n > 10 || this.controller.signal.aborted) {
+            throw e;
+          }
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
+
       const value = await r.arrayBuffer();
 
       const {offsets, chunks} = DGet.merge(this['basic-cache'][position]);
+
       delete this['basic-cache'][position];
       const encrypted = await (new Blob(chunks)).arrayBuffer();
 

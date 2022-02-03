@@ -111,9 +111,11 @@ class MGet {
 
           try {
             const p = position - 1;
+            this.actives += 1;
             await this.prepare(segment, p);
             await this.pipe(segment, params, p);
             await this.flush(segment, p);
+            this.actives -= 1;
             start();
           }
           catch (e) {
@@ -159,8 +161,6 @@ class MGet {
   }
   /* starts a single thread. If server supports range and size is greater than 'thread-size', runs multiple threads */
   pipe(segment, params, position = 0) {
-    this.actives += 1;
-
     const {href} = new URL(segment.uri, segment.base || undefined);
 
     const request = new Request(href, {
@@ -193,24 +193,11 @@ class MGet {
       }
       else if (r.ok) {
         // server supports range
+
         if (size && type === 'bytes' && computable !== 'false' && size > this.options['thread-size']) {
           return new Promise((resolve, reject) => {
             let start = segment.range?.start || 0;
             const end = segment.range?.end || size - 1;
-
-
-            let actives = 1;
-
-            const policy = new PolicyStream(this.options['thread-size']);
-
-            const monitor = new StatsStream(size => {
-              this.monitor(segment, position, size);
-            });
-            r.body.pipeThrough(policy).pipeThrough(monitor).pipeTo(writable).then(() => {
-              actives -= 1;
-              this.actives -= 1;
-              more();
-            }).catch(reject);
 
             // prepare other ranges
             const ranges = [];
@@ -223,13 +210,22 @@ class MGet {
                 break;
               }
             }
-
+            // start the first part
+            let actives = 1;
+            const policy = new PolicyStream(this.options['thread-size']);
+            const monitor = new StatsStream(size => {
+              this.monitor(segment, position, size);
+            });
+            r.body.pipeThrough(policy).pipeThrough(monitor).pipeTo(writable).then(() => {
+              actives -= 1;
+              more();
+            }).catch(reject);
+            // start other parts
             const more = () => {
               for (let n = 0; n < this.number(); n += 1) {
                 const start = ranges.shift();
                 if (start) {
                   actives += 1;
-                  this.actives += 1;
                   this.pipe({
                     ...segment,
                     range: {
@@ -238,7 +234,6 @@ class MGet {
                     }
                   }, params, position).then(() => {
                     actives -= 1;
-                    this.actives -= 1;
                     more();
                   }).catch(reject);
                 }
@@ -246,7 +241,7 @@ class MGet {
                   break;
                 }
               }
-              if (actives === 0) {
+              if (actives === 0 && ranges.length === 0) {
                 resolve();
               }
             };
@@ -258,7 +253,7 @@ class MGet {
           const monitor = new StatsStream(size => {
             this.monitor(segment, position, size);
           });
-          return r.body.pipeThrough(monitor).pipeTo(writable).then(() => this.actives -= 1);
+          return r.body.pipeThrough(monitor).pipeTo(writable);
         }
       }
       else {

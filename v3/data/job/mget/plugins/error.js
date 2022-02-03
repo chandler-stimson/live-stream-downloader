@@ -43,7 +43,6 @@ class EGet extends MyGet {
         if (n > this.options['error-tolerance'] || this.controller.signal.aborted) {
           throw e;
         }
-        this.actives -= 1;
       }
       const delay = Math.min(5000, this.options['error-delay'] * n);
       await new Promise(resolve => setTimeout(resolve, delay));

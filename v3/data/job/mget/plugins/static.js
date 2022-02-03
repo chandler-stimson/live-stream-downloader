@@ -63,7 +63,7 @@ class SGet extends MyGet {
     const href = resp.url.split('#')[0].split('?')[0];
     if (href.startsWith('data:')) {
       const mime = href.split('data:')[1].split(';')[0];
-      meta.ext = MIME_TYPES[mime] || mime.split('/')[1] || '';
+      meta.ext = (MIME_TYPES[mime] || mime.split('/')[1] || '').split(';')[0];
       meta.name = 'unknown';
       meta.mime = mime;
     }
@@ -74,7 +74,7 @@ class SGet extends MyGet {
 
       meta.name = e ? e[1] : fe;
       meta.mime = resp.headers.get('Content-Type') || '';
-      meta.ext = e ? e[2] : (MIME_TYPES[meta.mime] || meta.mime.split('/')[1] || '');
+      meta.ext = e ? e[2] : (MIME_TYPES[meta.mime] || meta.mime.split('/')[1] || '').split(';')[0];
     }
   }
   static size(bytes, si = false, dp = 1) {

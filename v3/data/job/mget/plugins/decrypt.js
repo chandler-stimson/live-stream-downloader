@@ -69,9 +69,13 @@ class DGet extends MyGet {
   async flush(segment, position) {
     if (segment.key) {
       const {href} = new URL(segment.key.uri, segment.base || segment.uri);
-      const value = await fetch(href, {
+      const r = await fetch(href, {
         'credentials': 'include'
-      }).then(r => r.arrayBuffer());
+      });
+      if (r.ok === false) {
+        throw Error('CANNOT_FETCH_KEY');
+      }
+      const value = await r.arrayBuffer();
 
       const {offsets, chunks} = DGet.merge(this['basic-cache'][position]);
       delete this['basic-cache'][position];

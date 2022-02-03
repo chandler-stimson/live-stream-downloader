@@ -21,7 +21,7 @@ body::before {
 }
 
 body[data-mode=empty]::before {
-  content: 'There is no media on this tab. You can drop HTML links, selected text from this page to extract media links, or local M3U8 manifest to start downloading them.';
+  content: 'There is no media on this tab. You can drop HTML links, selected text from this page to extract media links, or local M3U8 manifest to start downloading them. Also use Ctrl + V to extract links from the clipboard.';
 }
 body[data-mode=done] {
   background-color: #f1ffed;

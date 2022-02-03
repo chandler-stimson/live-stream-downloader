@@ -172,7 +172,8 @@ class MGet {
 
     return fetch(request, {
       ...params,
-      signal: this.controller.signal
+      signal: this.controller.signal,
+      credentials: 'include'
     }).then(r => {
       const s = Number(r.headers.get('Content-Length'));
       const size = isNaN(s) ? 0 : Number(s);

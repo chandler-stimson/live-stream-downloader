@@ -1,21 +1,9 @@
 /* global build */
 
-document.ondragover = e => e.preventDefault();
-document.ondrop = e => {
-  e.preventDefault();
+const extract = (code = '') => {
+  const links = new Set();
 
-  if (e.dataTransfer.files.length) {
-    build([...e.dataTransfer.files]);
-  }
-  else {
-    const links = new Set();
-
-    links.add(e.dataTransfer.getData('text/uri-list'));
-
-    const code =
-      e.dataTransfer.getData('text/html') ||
-      e.dataTransfer.getData('text/plain') || '';
-
+  try {
     const parser = new DOMParser();
     const doc = parser.parseFromString(code, 'text/html');
     for (const a of doc.querySelectorAll('[href]')) {
@@ -24,13 +12,46 @@ document.ondrop = e => {
     for (const a of doc.querySelectorAll('[src]')) {
       links.add(a.src);
     }
-    const r = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])/ig;
-    for (const link of (code.match(r) || [])) {
-      links.add(link);
-    }
+  }
+  catch (e) {}
+  const r = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])/ig;
+  for (const link of (code.match(r) || [])) {
+    links.add(link);
+  }
+
+  return links;
+};
+
+document.ondragover = e => e.preventDefault();
+document.ondrop = e => {
+  e.preventDefault();
+
+  if (e.dataTransfer.files.length) {
+    build([...e.dataTransfer.files]);
+  }
+  else {
+    const code = e.dataTransfer.getData('text/html') || e.dataTransfer.getData('text/plain');
+
+    const links = extract(code);
+    links.add(e.dataTransfer.getData('text/uri-list'));
 
     if (links.size) {
       build([...links].filter(s => s).map(url => ({url})));
     }
+    else {
+      self.notify('No link is detected!', 750);
+    }
+  }
+};
+
+document.onpaste = e => {
+  const code = e.clipboardData.getData('Text');
+
+  const links = extract(code);
+  if (links.size) {
+    build([...links].filter(s => s).map(url => ({url})));
+  }
+  else {
+    self.notify('No link is detected!', 750);
   }
 };

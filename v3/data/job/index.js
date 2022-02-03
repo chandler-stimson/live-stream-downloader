@@ -7,6 +7,22 @@ let cId; // id of this tab
 
 document.title += ' from "' + args.get('title') + '"';
 
+self.notify = (msg, timeout) => {
+  if (self.notify.id === undefined) {
+    self.notify.content = document.title;
+  }
+  document.title = msg;
+
+  if (timeout) {
+    clearTimeout(self.notify.id);
+    self.notify.id = setTimeout(() => {
+      document.title = self.notify.content;
+      self.notify.id = undefined;
+    }, timeout);
+  }
+};
+
+
 const response = o => {
   const headers = new Headers();
   for (const {name, value} of (o.responseHeaders || [])) {

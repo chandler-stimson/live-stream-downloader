@@ -28,8 +28,9 @@ class EGet extends MyGet {
   constructor(...args) {
     super(...args);
 
-    this.options['error-tolerance'] = 10; // number; number of times a single uri can throw error before breaking
+    this.options['error-tolerance'] = 2; // number; number of times a single uri can throw error before breaking
     this.options['error-delay'] = 300; // ms; min-delay before restarting the segment
+    this.options['error-handler'] = e => Promise.reject(e);
   }
   async pipe(...args) {
     for (let n = 0; ; n += 1) {
@@ -39,8 +40,12 @@ class EGet extends MyGet {
       }
       catch (e) {
         console.log('pipe is broken', e.message);
-        if (n > this.options['error-tolerance'] || this.controller.signal.aborted) {
+        if (this.controller.signal.aborted) {
           throw e;
+        }
+        if (n > this.options['error-tolerance']) {
+          await this.options['error-handler'](e, 'BROKEN_PIPE');
+          n = 0;
         }
       }
       const delay = Math.min(5000, this.options['error-delay'] * n);

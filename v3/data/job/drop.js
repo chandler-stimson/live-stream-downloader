@@ -26,6 +26,10 @@ document.ondragover = e => e.preventDefault();
 document.ondrop = e => {
   e.preventDefault();
 
+  if (document.body.dataset.mode === 'download' || document.body.dataset.mode === 'parse') {
+    return;
+  }
+
   if (e.dataTransfer.files.length) {
     build([...e.dataTransfer.files]);
   }
@@ -45,6 +49,10 @@ document.ondrop = e => {
 };
 
 document.onpaste = e => {
+  if (document.body.dataset.mode === 'download' || document.body.dataset.mode === 'parse') {
+    return;
+  }
+
   const code = e.clipboardData.getData('Text');
 
   const links = extract(code);

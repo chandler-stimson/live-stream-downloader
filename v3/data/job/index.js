@@ -1,11 +1,22 @@
 /* global MyGet, m3u8Parser */
 
+/*
+  http://127.0.0.1:8000/example/sample/unencrypted.m3u8
+  https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8
+  https://bitdash-a.akamaihd.net/content/MI201109210084_1/m3u8s/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8
+  http://demo.theoplayer.com/drm-aes-protection-128-encryption
+  https://anime.anidub.life/anime/full/11270-devushki-poni-enkoma-umayon-01-iz-13.html
+  https://soundcloud.com/nba-youngboy/youngboy-never-broke-again
+*/
+
 const args = new URLSearchParams(location.search);
 
 const tabId = Number(args.get('tabId')); // original tab
 let cId; // id of this tab
 
 document.title += ' from "' + args.get('title') + '"';
+document.getElementById('referer').textContent = args.get('href') || '-';
+document.getElementById('threads').textContent = MyGet.OPTIONS.threads;
 
 self.notify = (msg, timeout) => {
   if (self.notify.id === undefined) {
@@ -21,7 +32,59 @@ self.notify = (msg, timeout) => {
     }, timeout);
   }
 };
+self.prompt = (msg, buttons = {
+  ok: 'Retry',
+  no: 'Cancel',
+  value: ''
+}, confirm = false) => new Promise((resolve, reject) => {
+  self.prompt.cache.push({resolve, reject});
+  if (self.prompt.busy) {
+    return;
+  }
+  self.prompt.busy = true;
 
+  const root = document.getElementById('prompt');
+  root.querySelector('[data-id="msg"]').textContent = msg;
+  root.dataset.mode = confirm ? 'confirm' : 'prompt';
+
+  root.querySelector('[data-id="ok"]').value = buttons.ok;
+
+  if (buttons.value !== '') {
+    root.querySelector('input[data-id=value]').value = buttons.value;
+    root.querySelector('input[data-id=value]').type = isNaN(buttons.value) ? 'text' : 'number';
+    root.querySelector('input[data-id=value]').select();
+  }
+
+  root.onsubmit = e => {
+    e.preventDefault();
+    root.classList.add('hidden');
+    const value = root.querySelector('input[data-id=value]').value;
+    for (const {resolve} of self.prompt.cache) {
+      resolve(value);
+    }
+    self.prompt.cache = [];
+    self.prompt.busy = false;
+  };
+  root.querySelector('[data-id="no"]').onclick = () => {
+    root.classList.add('hidden');
+    const e = Error('USER_ABORT');
+    for (const {reject} of self.prompt.cache) {
+      reject(e);
+    }
+    self.prompt.cache = [];
+    self.prompt.busy = false;
+  };
+  root.querySelector('[data-id="no"]').value = buttons.no;
+  root.classList.remove('hidden');
+
+  if (buttons.value !== '') {
+    root.querySelector('input[data-id=value]').focus();
+  }
+  else {
+    root.querySelector('[data-id="ok"]').focus();
+  }
+});
+self.prompt.cache = [];
 
 const response = o => {
   const headers = new Headers();
@@ -60,9 +123,8 @@ const build = os => {
       setTimeout(() => e.target.value = 'Copy', 750);
     }).catch(e => alert(e.message));
 
-    div.response = r;
-    div.meta = meta;
     div.o = o;
+    div.meta = meta;
 
     document.getElementById('hrefs').appendChild(div);
   }
@@ -94,20 +156,8 @@ chrome.runtime.sendMessage({
     if (bh && ah === false) {
       return 1;
     }
+    return a.timeStamp - b.timeStamp;
   });
-  // const os = [{
-  //   url: 'http://127.0.0.1:8000/example/sample/unencrypted.m3u8'
-  // }, {
-  //   url: 'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8'
-  // }, {
-  //   url: 'https://bitdash-a.akamaihd.net/content/MI201109210084_1/m3u8s/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8'
-  // }, {
-  //   url: 'http://demo.theoplayer.com/drm-aes-protection-128-encryption'
-  // }, {
-  //   url: 'https://anime.anidub.life/anime/full/11270-devushki-poni-enkoma-umayon-01-iz-13.html'
-  // }, {
-  //   url: 'https://soundcloud.com/nba-youngboy/youngboy-never-broke-again'
-  // }];
 
   build(os);
 });
@@ -120,8 +170,8 @@ const error = e => {
 
 const net = {
   async add(initiator) {
-    if (initiator.startsWith('http') === false) {
-      console.log('referer skipped', initiator);
+    if (!initiator || initiator.startsWith('http') === false) {
+      console.warn('referer skipped', initiator);
       return;
     }
 
@@ -165,7 +215,7 @@ const download = async (segments, file) => {
 
   // segment with initialization map
   segments = segments.map(s => {
-    if (s.map && s.map.uri) {
+    if (s.map && s.map.uri && s.map.uri !== s.uri) {
       return [{
         ...s,
         uri: s.map.uri
@@ -189,7 +239,14 @@ const download = async (segments, file) => {
       return super.monitor(...args);
     }
   };
-  console.log(n);
+  // instead of breaking, let the user retry
+  n.options['error-handler'] = (e, source) => {
+    return self.prompt(`Connection to the server is broken (${source} -> ${e.message})!
+
+Press "Retry" to try one more time`);
+  };
+
+  console.log('MyGet', n);
 
   const timer = setInterval(() => {
     // downloading a single file
@@ -218,7 +275,7 @@ const download = async (segments, file) => {
     document.title = 'Done. Media is ready!';
 
     // try to rename
-    if (n.meta.name && n.meta.ext) {
+    if (n.meta.name && n.meta.ext && file.rename) {
       const name = n.meta.name + '.' + n.meta.ext;
       if (name !== file.name) {
         const input = document.querySelector('[data-active=true] input[data-id=rename]');
@@ -264,12 +321,16 @@ const parser = async (manifest, file, href) => {
       o = new URL(manifest, href);
     }
     else {
-      href = prompt(`What is the base URL for "${manifest}"`);
+      href = await prompt(`What is the base URL for "${manifest}"`, {
+        ok: 'Set Base',
+        no: 'Abort'
+      }, true);
       o = new URL(manifest, href);
     }
 
     manifest = await fetch(o.href).then(r => {
       if (r.ok) {
+        href = o.href;
         return r.text();
       }
       throw Error('FAILED_TO_FETCH_' + r.status);
@@ -287,15 +348,29 @@ const parser = async (manifest, file, href) => {
   const playlists = p.manifest.playlists || [];
   if (playlists.length) {
     const msgs = [];
+    // sort based on highest quality
+    playlists.sort((a, b) => {
+      try {
+        return b.attributes.RESOLUTION.width - a.attributes.RESOLUTION.width;
+      }
+      catch (e) {
+        return 0;
+      }
+    });
+
     for (const playlist of playlists) {
       if (playlist.attributes && playlist.attributes.RESOLUTION) {
-        msgs.push(playlist.attributes.RESOLUTION.width + ' × ' + playlist.attributes.RESOLUTION.height + ' -> ' + playlist.uri.substr(-30));
+        msgs.push(playlist.attributes.RESOLUTION.width + ' × ' + playlist.attributes.RESOLUTION.height + ' -> ' + playlist.uri.substr(-60));
       }
       else {
         msgs.push(playlist.uri.substr(-30));
       }
     }
-    const n = (playlists.length > 1 ? prompt('Select one stream:\n\n' + msgs.map((m, n) => n + '. ' + m).join('\n'), 0) : 0) || 0;
+    const n = (playlists.length > 1 ? await prompt('Select one stream:\n\n' + msgs.map((m, n) => n + '. ' + m).join('\n'), {
+      ok: 'Select Quality',
+      no: 'Abort',
+      value: 0
+    }, true) : 0);
 
     if (isNaN(n) === false) {
       const v = playlists[Number(n)];
@@ -309,7 +384,7 @@ const parser = async (manifest, file, href) => {
         }
       }
     }
-    throw Error('USER_ABORT');
+    throw Error('UNKNOWN_QUALITY');
   }
 
   const segments = p.manifest.segments;
@@ -317,7 +392,10 @@ const parser = async (manifest, file, href) => {
   if (segments.length) {
     // do we have a valid segment
     if (!href && segments[0].uri.startsWith('http') === false) {
-      href = prompt(`What is the base URL for "${segments[0].uri}"`);
+      href = await prompt(`What is the base URL for "${segments[0].uri}"`, {
+        ok: 'Set Base',
+        no: 'Abort'
+      }, true);
     }
 
     document.title = 'Downloading ' + href;
@@ -347,16 +425,23 @@ document.getElementById('hrefs').onsubmit = async e => {
       options.types[0].accept = {
         'video/mkv': ['.mkv']
       };
+      options.suggestedName = (div.meta.name || 'Untitled') + '.mkv';
     }
-    else if (div.meta.ext && div.meta.mime) {
-      options.types[0].accept = {
-        [div.meta.mime]: ['.' + div.meta.ext]
-      };
+    else if (div.meta.ext) {
+      if (div.meta.mime) {
+        options.types[0].accept = {
+          [div.meta.mime]: ['.' + div.meta.ext]
+        };
+      }
+      options.suggestedName = (div.meta.name || 'Untitled') + '.' + div.meta.ext;
     }
+
     const file = await window.showSaveFilePicker(options);
 
     // fix referer
-    await net.add(div.o.initiator || args.get('href'));
+    const referer = div.o.initiator || args.get('href');
+    await net.add(referer);
+    document.getElementById('referer').textContent = referer;
 
     // URL
     if (div.o instanceof File) {
@@ -381,9 +466,11 @@ document.getElementById('hrefs').onsubmit = async e => {
         await parser(div.o.url, file);
       }
     }
+    div.classList.remove('error');
     div.classList.add('done');
   }
   catch (e) {
+    div.classList.remove('done');
     div.classList.add('error');
     error(e);
   }

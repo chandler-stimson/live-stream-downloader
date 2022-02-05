@@ -45,9 +45,13 @@ const badge = (n, tabId) => {
         '48': 'data/icons/active/48.png'
       }
     });
+
     chrome.action.setBadgeText({
       tabId: tabId,
-      text: n + ''
+      text: new Intl.NumberFormat('en-US', {
+        notation: 'compact',
+        maximumFractionDigits: 1
+      }).format(n)
     });
   }
   else {
@@ -82,6 +86,7 @@ const observe = d => {
         prefs[d.tabId].push({
           url: d.url,
           initiator: d.initiator,
+          timeStamp: d.timeStamp,
           responseHeaders: d.responseHeaders.filter(o => HEADERS.indexOf(o.name.toLowerCase()) !== -1)
         });
         chrome.storage.session.set(prefs);

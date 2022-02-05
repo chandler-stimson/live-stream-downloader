@@ -18,7 +18,36 @@
       <input type="submit" value="Download">
     </div>
   </template>
-  <form id="hrefs"></form>
+  <div id="intro">
+    <div>There is no media on this tab. To add new downloading jobs:</div>
+    <ul>
+      <li>Drag and drop HTML links</li>
+      <li>Drag and drop selected text to extract links</li>
+      <li>Drag and drop a local M3U8 manifest</li>
+      <li>Use Ctrl + V or Command + V to extract links from the clipboard</li>
+    </ul>
+  </div>
+  <div id="prompt" class="hidden">
+    <form>
+      <p data-id="msg"></p>
+      <input data-id="value" type="text">
+      <div data-id="toolbar">
+        <input type="button" data-id="no" value="Cancel">
+        <input type="submit" data-id="ok" value="OK">
+      </div>
+    </form>
+  </div>
+  <div id="hrefs-container">
+    <form id="hrefs"></form>
+  </div>
+  <footer>
+    <div title="Download jobs with 3 simultaneous threads to increase speed">
+      <b>Number of Threads</b>: <span id="threads">3</span>
+    </div>
+    <div title="All requests to the server will contain this URL as the Referrer header">
+      <b>Referrer</b>: <span id="referer">-</span>
+    </div>
+  </footer>
   <!-- MyGet -->
   <script type="text/javascript" src="mget/mget.js"></script>
   <script type="text/javascript" src="mget/plugins/static.js"></script>

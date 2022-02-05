@@ -82,9 +82,17 @@ class DGet extends MyGet {
           }
         }
         catch (e) {
-          console.warn('key is broken', e.message);
-          if (n > 10 || this.controller.signal.aborted) {
+          console.log('key is broken', e.message);
+          if (this.controller.signal.aborted) {
             throw e;
+          }
+          if (n > 10) {
+            if (this.options['error-handler']) {
+              await this.options['error-handler'](e, 'BROKEN_KEY');
+            }
+            else {
+              throw e;
+            }
           }
           await new Promise(resolve => setTimeout(resolve, 500));
         }

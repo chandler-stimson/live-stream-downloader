@@ -22,6 +22,9 @@
     "*://*/*.wma*",
     "*://*/*.m3u8*"
   ],
+  "optional_permissions": [
+    "power"
+  ],
   "homepage_url": "https://add0n.com/hls-downloader.html",
   "background": {
     "scripts": [

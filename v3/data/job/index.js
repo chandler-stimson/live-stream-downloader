@@ -12,7 +12,11 @@
 const args = new URLSearchParams(location.search);
 
 const tabId = Number(args.get('tabId')); // original tab
-let cId; // id of this tab
+
+const events = {
+  before: [], // before download begins
+  after: [] // after download ends
+};
 
 document.title += ' from "' + args.get('title') + '"';
 document.getElementById('referer').textContent = args.get('href') || '-';
@@ -132,11 +136,6 @@ const build = os => {
   document.body.dataset.mode = document.querySelector('form .entry') ? 'ready' : 'empty';
 };
 
-chrome.tabs.query({
-  active: true,
-  currentWindow: true
-}, tbs => cId = tbs[0].id);
-
 chrome.runtime.sendMessage({
   method: 'get-jobs',
   tabId
@@ -166,38 +165,6 @@ const error = e => {
   console.warn(e);
   document.title = e.message;
   document.body.dataset.mode = 'error';
-};
-
-const net = {
-  async add(initiator) {
-    if (!initiator || initiator.startsWith('http') === false) {
-      console.warn('referer skipped', initiator);
-      return;
-    }
-
-    await chrome.declarativeNetRequest.updateSessionRules({
-      removeRuleIds: [cId],
-      addRules: [{
-        'id': cId,
-        'action': {
-          'type': 'modifyHeaders',
-          'requestHeaders': [{
-            'operation': 'set',
-            'header': 'referer',
-            'value': initiator
-          }]
-        },
-        'condition': {
-          'tabIds': [cId]
-        }
-      }]
-    });
-  },
-  remove() {
-    return chrome.declarativeNetRequest.updateSessionRules({
-      removeRuleIds: [cId]
-    });
-  }
 };
 
 const download = async (segments, file) => {
@@ -438,10 +405,10 @@ document.getElementById('hrefs').onsubmit = async e => {
 
     const file = await window.showSaveFilePicker(options);
 
-    // fix referer
-    const referer = div.o.initiator || args.get('href');
-    await net.add(referer);
-    document.getElementById('referer').textContent = referer;
+    // run pre
+    for (const c of events.before) {
+      await c(div.o);
+    }
 
     // URL
     if (div.o instanceof File) {
@@ -474,6 +441,11 @@ document.getElementById('hrefs').onsubmit = async e => {
     div.classList.add('error');
     error(e);
   }
-  net.remove();
+
+  // run post
+  for (const c of events.after) {
+    c();
+  }
+
   div.dataset.active = false;
 };

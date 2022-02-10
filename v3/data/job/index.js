@@ -18,9 +18,17 @@ const events = {
   after: [] // after download ends
 };
 
+const storage = {
+  get(prefs) {
+    return new Promise(resolve => chrome.storage.local.get(prefs, resolve));
+  },
+  set(prefs) {
+    return new Promise(resolve => chrome.storage.local.set(prefs, resolve));
+  }
+};
+
 document.title += ' from "' + args.get('title') + '"';
 document.getElementById('referer').textContent = args.get('href') || '-';
-document.getElementById('threads').textContent = MyGet.OPTIONS.threads;
 
 self.notify = (msg, timeout) => {
   if (self.notify.id === undefined) {
@@ -36,58 +44,52 @@ self.notify = (msg, timeout) => {
     }, timeout);
   }
 };
+
 self.prompt = (msg, buttons = {
   ok: 'Retry',
   no: 'Cancel',
   value: ''
-}, confirm = false) => new Promise((resolve, reject) => {
-  self.prompt.cache.push({resolve, reject});
-  if (self.prompt.busy) {
-    return;
-  }
-  self.prompt.busy = true;
+}, confirm = false) => {
+  return new Promise((resolve, reject) => {
+    const root = document.getElementById('prompt');
+    self.prompt.cache.push({resolve, reject});
 
-  const root = document.getElementById('prompt');
-  root.querySelector('[data-id="msg"]').textContent = msg;
-  root.dataset.mode = confirm ? 'confirm' : 'prompt';
+    if (root.open === false) {
+      root.querySelector('p').textContent = msg;
+      root.dataset.mode = confirm ? 'confirm' : 'prompt';
 
-  root.querySelector('[data-id="ok"]').value = buttons.ok;
+      root.querySelector('[name=value]').required = confirm;
+      root.querySelector('[name=value]').value = buttons.value;
+      root.querySelector('[name=value]').type = isNaN(buttons.value) ? 'text' : 'number';
+      root.querySelector('[value=default]').textContent = buttons.ok;
+      root.querySelector('[value=cancel]').textContent = buttons.no;
 
-  if (buttons.value !== '') {
-    root.querySelector('input[data-id=value]').value = buttons.value;
-    root.querySelector('input[data-id=value]').type = isNaN(buttons.value) ? 'text' : 'number';
-    root.querySelector('input[data-id=value]').select();
-  }
+      root.onsubmit = e => {
+        e.preventDefault();
+        root.close();
+        if (e.submitter.value === 'default') {
+          const value = root.querySelector('[name=value]').value;
+          for (const {resolve} of self.prompt.cache) {
+            resolve(value);
+          }
+        }
+        else {
+          root.onclose();
+        }
+        self.prompt.cache = [];
+      };
+      root.onclose = () => {
+        const e = Error('USER_ABORT');
+        for (const {reject} of self.prompt.cache) {
+          reject(e);
+        }
+      };
 
-  root.onsubmit = e => {
-    e.preventDefault();
-    root.classList.add('hidden');
-    const value = root.querySelector('input[data-id=value]').value;
-    for (const {resolve} of self.prompt.cache) {
-      resolve(value);
+      root.showModal();
+      root.querySelector(confirm ? '[name=value]' : '[value=default]').focus();
     }
-    self.prompt.cache = [];
-    self.prompt.busy = false;
-  };
-  root.querySelector('[data-id="no"]').onclick = () => {
-    root.classList.add('hidden');
-    const e = Error('USER_ABORT');
-    for (const {reject} of self.prompt.cache) {
-      reject(e);
-    }
-    self.prompt.cache = [];
-    self.prompt.busy = false;
-  };
-  root.querySelector('[data-id="no"]').value = buttons.no;
-  root.classList.remove('hidden');
-
-  if (buttons.value !== '') {
-    root.querySelector('input[data-id=value]').focus();
-  }
-  else {
-    root.querySelector('[data-id="ok"]').focus();
-  }
-});
+  });
+};
 self.prompt.cache = [];
 
 const response = o => {
@@ -206,6 +208,10 @@ const download = async (segments, file) => {
       return super.monitor(...args);
     }
   };
+  n.options.threads = (await storage.get({
+    threads: 3
+  })).threads;
+
   // instead of breaking, let the user retry
   n.options['error-handler'] = (e, source) => {
     return self.prompt(`Connection to the server is broken (${source} -> ${e.message})!
@@ -220,7 +226,8 @@ Press "Retry" to try one more time`);
     if (stat.total === 1) {
       if (n.sizes.has(0)) {
         const percent = stat.fetched / n.sizes.get(0) * 100;
-        document.title = percent.toFixed(1) + `% fetched [${MyGet.size(stat.fetched)}/${MyGet.size(n.sizes.get(0))}]`;
+        document.title = percent.toFixed(1) + `% fetched [${MyGet.size(stat.fetched)}/${MyGet.size(n.sizes.get(0))}]` +
+          ` [Threads: ${n.actives}]`;
       }
       else {
         document.title = MyGet.size(stat.fetched) + ' fetched...';
@@ -228,9 +235,9 @@ Press "Retry" to try one more time`);
     }
     else {
       document.title = (stat.current / stat.total * 100).toFixed(1) +
-        `% fetched [${stat.current}/${stat.total}] (${MyGet.size(stat.fetched)})`;
+        `% fetched [${stat.current}/${stat.total}] (${MyGet.size(stat.fetched)})` + ` [Threads: ${n.actives}]`;
     }
-  }, 500);
+  }, 750);
 
   try {
     // attach disk writer
@@ -333,11 +340,14 @@ const parser = async (manifest, file, href) => {
         msgs.push(playlist.uri.substr(-30));
       }
     }
+    console.log(123);
     const n = (playlists.length > 1 ? await prompt('Select one stream:\n\n' + msgs.map((m, n) => n + '. ' + m).join('\n'), {
       ok: 'Select Quality',
       no: 'Abort',
       value: 0
     }, true) : 0);
+
+    console.log(n);
 
     if (isNaN(n) === false) {
       const v = playlists[Number(n)];

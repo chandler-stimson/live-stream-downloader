@@ -28,7 +28,7 @@ class EGet extends MyGet {
   constructor(...args) {
     super(...args);
 
-    this.options['error-tolerance'] = 2; // number; number of times a single uri can throw error before breaking
+    this.options['error-tolerance'] = 10; // number; number of times a single uri can throw error before breaking
     this.options['error-delay'] = 300; // ms; min-delay before restarting the segment
     this.options['error-handler'] = e => Promise.reject(e);
   }

@@ -52,6 +52,7 @@ footer {
   grid-gap: 10px;
   padding: 10px;
   white-space: nowrap;
+  z-index: 2;
 }
 footer div {
   overflow: hidden;
@@ -121,18 +122,13 @@ body:not([data-mode=empty]) #intro {
 }
 
 #prompt {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: absolute;
-  inset: 0;
-  background-color: var(--bg-light);
-  z-index: 10;
+  padding: 5px;
 }
 #prompt p {
   margin: 0;
+  display: block;
+  overflow: auto;
+  white-space: pre;
 }
 #prompt > form {
   background-color: var(--bg-light-dark);
@@ -143,23 +139,18 @@ body:not([data-mode=empty]) #intro {
   grid-template-rows: 1fr min-content min-content;
   grid-gap: 10px;
 }
-#prompt [data-id="msg"] {
-  display: block;
-  overflow: auto;
-  white-space: pre;
+#prompt menu {
+  padding: 0;
+  direction: rtl;
 }
-#prompt [data-id="toolbar"] {
-  text-align: right;
-}
-#prompt input[type=button],
-#prompt input[type=submit] {
+#prompt menu button {
   padding: 5px 10px;
 }
-#prompt input[data-id="value"] {
+#prompt [name=value] {
   width: 100%;
   box-sizing: border-box;
 }
-#prompt:not([data-mode=confirm]) input[data-id=value] {
+#prompt [name=value]:not([required]) {
   display: none;
 }
 
@@ -201,4 +192,8 @@ body:not([data-mode=empty]) #intro {
 
 #hrefs input[type=button] {
   margin-right: 2px;
+}
+
+#threads-selector {
+  cursor: pointer;
 }

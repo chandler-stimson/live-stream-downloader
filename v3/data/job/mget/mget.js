@@ -264,7 +264,7 @@ class MGet {
 }
 MGet.OPTIONS = {
   'thread-size': 5 * 1024 * 1024, // bytes; size of each segment
-  'threads': 3, // number; max number of simultaneous threads
+  'threads': 2, // number; max number of simultaneous threads
   'next-segment-wait': 2000 // ms; time to wait after a segment is started, before considering the next segment
 };
 

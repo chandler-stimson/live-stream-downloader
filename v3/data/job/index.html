@@ -27,21 +27,21 @@
       <li>Use Ctrl + V or Command + V to extract links from the clipboard</li>
     </ul>
   </div>
-  <div id="prompt" class="hidden">
+  <dialog id="prompt">
     <form>
-      <p data-id="msg"></p>
-      <input data-id="value" type="text">
-      <div data-id="toolbar">
-        <input type="button" data-id="no" value="Cancel">
-        <input type="submit" data-id="ok" value="OK">
-      </div>
+      <p></p>
+      <input name="value" type="text" autofocus>
+      <menu>
+        <button value="default" type="submit">Confirm</button>
+        <button value="cancel">Cancel</button>
+      </menu>
     </form>
-  </div>
+  </dialog>
   <div id="hrefs-container">
     <form id="hrefs"></form>
   </div>
   <footer>
-    <div title="Download jobs with 3 simultaneous threads to increase speed">
+    <div title="Download jobs with 3 simultaneous threads to increase speed" id="threads-selector">
       <b>Number of Threads</b>: <span id="threads">3</span>
     </div>
     <div title="All requests to the server will contain this URL as the Referrer header">
@@ -60,6 +60,7 @@
   <script type="text/javascript" src="index.js"></script>
   <!-- Plugins -->
   <script type="text/javascript" src="plugins/unload.js"></script>
+  <script type="text/javascript" src="plugins/threads.js"></script>
   <script type="text/javascript" src="plugins/referer.js"></script>
   <script type="text/javascript" src="plugins/permission.js"></script>
   <script type="text/javascript" src="plugins/drop.js"></script>

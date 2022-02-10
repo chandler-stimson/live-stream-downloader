@@ -72,8 +72,14 @@ const badge = (n, tabId) => {
 
 const observe = d => {
   // hard-coded exception list
-  if (BLOCKED_LIST.some(s => d.url.indexOf(s) !== -1)) {
+  if (BLOCKED_LIST.some(s => d.url.indexOf(s) !== -1 && d.url.split(s)[0].split('/').length === 3)) {
     return console.warn('This request is not being processed');
+  }
+  // unsupported content types
+  if (d.responseHeaders.some(({name, value}) => {
+    return name === 'content-type' && value && value.startsWith('text/html');
+  })) {
+    return;
   }
 
   chrome.storage.session.get({

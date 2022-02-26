@@ -95,7 +95,7 @@ const observe = d => {
           timeStamp: d.timeStamp,
           responseHeaders: d.responseHeaders.filter(o => HEADERS.indexOf(o.name.toLowerCase()) !== -1)
         });
-        prefs[d.tabId] = prefs[d.tabId].slice(-500);
+        prefs[d.tabId] = prefs[d.tabId].slice(-300);
         chrome.storage.session.set(prefs);
         badge(prefs[d.tabId].length, d.tabId);
       }

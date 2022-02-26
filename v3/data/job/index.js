@@ -209,7 +209,7 @@ const download = async (segments, file) => {
     }
   };
   n.options.threads = (await storage.get({
-    threads: 3
+    threads: MyGet.OPTIONS.threads
   })).threads;
 
   // instead of breaking, let the user retry

@@ -33,7 +33,7 @@ body[data-mode=done] {
   background-color: #f1ffed;
 }
 body[data-mode=download]::before {
-  content: 'Download is in progress. Please do not close this window...';
+  content: 'Download is in progress. Do not close this window...';
 }
 body[data-mode=parse]::before {
   content: 'Parsing M3U8 manifest...';

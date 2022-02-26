@@ -111,11 +111,9 @@ class MGet {
 
           try {
             const p = position - 1;
-            this.actives += 1;
             await this.prepare(segment, p);
             await this.pipe(segment, params, p);
             await this.flush(segment, p);
-            this.actives -= 1;
             start();
           }
           catch (e) {
@@ -170,6 +168,7 @@ class MGet {
       request.headers.append('Range', `bytes=${segment.range.start}-${segment.range.end}`);
     }
 
+    this.actives += 1;
     return fetch(request, {
       ...params,
       signal: this.controller.signal,
@@ -218,6 +217,7 @@ class MGet {
             });
             r.body.pipeThrough(policy).pipeThrough(monitor).pipeTo(writable).then(() => {
               actives -= 1;
+              this.actives -= 1;
               more();
             }).catch(reject);
             // start other parts
@@ -253,17 +253,22 @@ class MGet {
           const monitor = new StatsStream(size => {
             this.monitor(segment, position, size);
           });
-          return r.body.pipeThrough(monitor).pipeTo(writable);
+          return r.body.pipeThrough(monitor).pipeTo(writable).then(() => {
+            this.actives -= 1;
+          });
         }
       }
       else {
         throw Error('STATUS_' + r.status);
       }
+    }).catch(e => {
+      this.actives -= 1;
+      throw e;
     });
   }
 }
 MGet.OPTIONS = {
-  'thread-size': 5 * 1024 * 1024, // bytes; size of each segment
+  'thread-size': 50 * 1024 * 1024, // bytes; size of each segment
   'threads': 2, // number; max number of simultaneous threads
   'next-segment-wait': 2000 // ms; time to wait after a segment is started, before considering the next segment
 };

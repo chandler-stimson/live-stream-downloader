@@ -1,7 +1,7 @@
 // the headers that need to be recorded
 const HEADERS = ['content-length', 'accept-ranges', 'content-type', 'content-disposition'];
 // do not allow downloading from these resources
-const BLOCKED_LIST = ['.globo.com', '.gstatic.com'];
+const BLOCKED_LIST = ['.globo.com', '.gstatic.com', '.playm4u'];
 
 const open = async (tab, extra = []) => {
   const win = await chrome.windows.getCurrent();

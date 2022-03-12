@@ -1,5 +1,7 @@
 /* global events args */
 
+document.getElementById('referer').textContent = args.get('href') || '-';
+
 const net = {
   async add(initiator) {
     if (!initiator || initiator.startsWith('http') === false) {
@@ -13,17 +15,23 @@ const net = {
     }, resolve));
     const cId = net.id = tab.id;
 
+    const headers = [{
+      'operation': 'set',
+      'header': 'origin',
+      'value': initiator
+    }, {
+      'operation': 'set',
+      'header': 'referer',
+      'value': initiator
+    }];
+
     await chrome.declarativeNetRequest.updateSessionRules({
       removeRuleIds: [cId],
       addRules: [{
         'id': cId,
         'action': {
           'type': 'modifyHeaders',
-          'requestHeaders': [{
-            'operation': 'set',
-            'header': 'referer',
-            'value': initiator
-          }]
+          'requestHeaders': headers
         },
         'condition': {
           'tabIds': [cId]

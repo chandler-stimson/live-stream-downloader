@@ -1,6 +1,5 @@
 /* global storage, MyGet */
 
-
 storage.get({
   threads: MyGet.OPTIONS.threads
 }).then(prefs => {

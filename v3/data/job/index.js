@@ -28,9 +28,8 @@ const storage = {
 };
 
 document.title += ' from "' + args.get('title') + '"';
-document.getElementById('referer').textContent = args.get('href') || '-';
 
-self.notify = (msg, timeout) => {
+self.notify = (msg, timeout = 750) => {
   if (self.notify.id === undefined) {
     self.notify.content = document.title;
   }
@@ -60,6 +59,7 @@ self.prompt = (msg, buttons = {
 
       root.querySelector('[name=value]').required = confirm;
       root.querySelector('[name=value]').value = buttons.value;
+      root.querySelector('[name=value]').select();
       root.querySelector('[name=value]').type = isNaN(buttons.value) ? 'text' : 'number';
       root.querySelector('[value=default]').textContent = buttons.ok;
       root.querySelector('[value=cancel]').textContent = buttons.no;
@@ -102,7 +102,17 @@ const response = o => {
     headers
   };
 };
-const build = os => {
+const build = async os => {
+  const prefs = await storage.get({
+    'filename': '[meta.name]' // [meta.name], [title], [hostname]
+  });
+  let hostname = 'NA';
+  try {
+    const o = new URL(args.get('href'));
+    hostname = o.hostname;
+  }
+  catch (e) {}
+
   const t = document.getElementById('entry');
   for (const o of os) {
     const clone = document.importNode(t.content, true);
@@ -114,7 +124,10 @@ const build = os => {
     } : o);
     MyGet.guess(r, meta);
 
-    clone.querySelector('[data-id=name]').textContent = clone.querySelector('[data-id=name]').title = meta.name;
+    meta.gname = clone.querySelector('[data-id=name]').textContent = clone.querySelector('[data-id=name]').title = prefs.filename
+      .replace('[meta.name]', meta.name)
+      .replace('[title]', args.get('title'))
+      .replace('[hostname]', hostname);
     clone.querySelector('[data-id=ext]').textContent = meta.ext || 'N/A';
     if (r.headers.has('Content-Length')) {
       clone.querySelector('[data-id=size]').textContent = MyGet.size(r.headers.get('Content-Length') || '0');
@@ -340,14 +353,11 @@ const parser = async (manifest, file, href) => {
         msgs.push(playlist.uri.substr(-30));
       }
     }
-    console.log(123);
     const n = (playlists.length > 1 ? await prompt('Select one stream:\n\n' + msgs.map((m, n) => n + '. ' + m).join('\n'), {
       ok: 'Select Quality',
       no: 'Abort',
       value: 0
     }, true) : 0);
-
-    console.log(n);
 
     if (isNaN(n) === false) {
       const v = playlists[Number(n)];
@@ -397,12 +407,13 @@ document.getElementById('hrefs').onsubmit = async e => {
         description: 'Video or Audio Files'
       }]
     };
+
     // this way, the file can get played will download is in progress
     if (div.meta.ext === 'm3u8' || div.meta.ext === '') {
       options.types[0].accept = {
         'video/mkv': ['.mkv']
       };
-      options.suggestedName = (div.meta.name || 'Untitled') + '.mkv';
+      options.suggestedName = (div.meta.gname || div.meta.name || 'Untitled') + '.mkv';
     }
     else if (div.meta.ext) {
       if (div.meta.mime) {
@@ -410,7 +421,7 @@ document.getElementById('hrefs').onsubmit = async e => {
           [div.meta.mime]: ['.' + div.meta.ext]
         };
       }
-      options.suggestedName = (div.meta.name || 'Untitled') + '.' + div.meta.ext;
+      options.suggestedName = (div.meta.gname || div.meta.name || 'Untitled') + '.' + div.meta.ext;
     }
 
     const file = await window.showSaveFilePicker(options);

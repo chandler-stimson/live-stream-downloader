@@ -48,16 +48,17 @@ body[data-mode=download]::before {
 footer {
   border-top: solid 4px var(--bg-light-dark);
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: max-content 2fr 1fr 1fr;
   grid-gap: 10px;
   padding: 10px;
   white-space: nowrap;
   z-index: 2;
 }
-footer div {
+footer > div {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 select,
@@ -112,6 +113,7 @@ a:visited {
   width: fit-content;
   position: absolute;
   inset: 0;
+  padding: 2rem;
 }
 #intro ul {
   margin: 0;
@@ -194,6 +196,3 @@ body:not([data-mode=empty]) #intro {
   margin-right: 2px;
 }
 
-#threads-selector {
-  cursor: pointer;
-}

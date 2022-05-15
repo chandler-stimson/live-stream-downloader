@@ -262,7 +262,7 @@ Press "Retry" to try one more time`);
     document.title = 'Done. Media is ready!';
 
     // try to rename
-    if (n.meta.name && n.meta.ext && file.rename) {
+    if (n.meta.name && n.meta.ext && file.move) {
       const name = n.meta.name + '.' + n.meta.ext;
       if (name !== file.name) {
         const input = document.querySelector('[data-active=true] input[data-id=rename]');
@@ -272,7 +272,7 @@ Press "Retry" to try one more time`);
             if (confirm(`Rename media from "${file.name}" to "${name}"?
 
 -> This will overwrite an existing file with the same name.`)) {
-              file.rename(name);
+              file.move(name);
               e.target.disabled = true;
             }
           };

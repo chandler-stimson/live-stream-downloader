@@ -40,9 +40,11 @@ const net = {
     });
   },
   remove() {
-    return chrome.declarativeNetRequest.updateSessionRules({
-      removeRuleIds: [net.id]
-    });
+    if (net.id) {
+      return chrome.declarativeNetRequest.updateSessionRules({
+        removeRuleIds: [net.id]
+      });
+    }
   }
 };
 

@@ -102,29 +102,39 @@ class MGet {
       let position = 0;
 
       const start = async () => {
-        const segment = segments.shift();
-        position += 1;
-
-        if (segment) {
-          // wait for 5 seconds to make sure the old segment started all its segments. Then try to start a new segment
-          setTimeout(() => this.number() && segments.length && start(), 5000);
-
-          try {
-            const p = position - 1;
-            await this.prepare(segment, p);
-            await this.pipe(segment, params, p);
-            await this.flush(segment, p);
-            start();
+        try {
+          // a dummy check to see if we can resolve the position of the next segment. If not, ignore this call
+          if (segments.length) {
+            this.offset(segments[0], position);
           }
-          catch (e) {
-            reject(e);
+          //
+          const segment = segments.shift();
+          position += 1;
+
+          if (segment) {
+            try {
+              const p = position - 1;
+              await this.prepare(segment, p);
+              await this.pipe(segment, params, p, () => {
+                // start a new segment if we have a free thread and there are leftover segments
+                if (this.number() && segments.length) {
+                  start();
+                }
+              });
+              await this.flush(segment, p);
+              start();
+            }
+            catch (e) {
+              reject(e);
+            }
+          }
+          else {
+            if (this.actives === 0) {
+              resolve();
+            }
           }
         }
-        else {
-          if (this.actives === 0) {
-            resolve();
-          }
-        }
+        catch (e) {}
       };
       start();
     }).catch(e => {
@@ -142,9 +152,9 @@ class MGet {
     let offset = 0;
     for (let n = 0; n < position; n += 1) {
       offset += this.sizes.get(n);
-    }
-    if (isNaN(offset)) {
-      throw Error('OFFSET_ERROR');
+      if (isNaN(offset)) {
+        throw Error('OFFSET_NOT_RESOLVED_' + n);
+      }
     }
 
     return offset + (segment.range?.start || 0);
@@ -157,8 +167,11 @@ class MGet {
     const stream = new self.MemoryWriter(position, offset, this.cache);
     return stream;
   }
-  /* starts a single thread. If server supports range and size is greater than 'thread-size', runs multiple threads */
-  pipe(segment, params, position = 0) {
+  /*
+    starts a single thread. If server supports range and size is greater than 'thread-size', runs multiple threads
+    settled is called when all segments are initiated. This can be used to asynchronously call other pipes if necessary
+  */
+  pipe(segment, params, position = 0, settled = () => {}) {
     const {href} = new URL(segment.uri, segment.base || undefined);
 
     const request = new Request(href, {
@@ -226,7 +239,7 @@ class MGet {
                 const start = ranges.shift();
                 if (start) {
                   actives += 1;
-                  this.pipe({
+                  this.pipe({ // do not pass the "settled" method to the subsequent pipes
                     ...segment,
                     range: {
                       start,
@@ -244,12 +257,15 @@ class MGet {
               if (actives === 0 && ranges.length === 0) {
                 resolve();
               }
+              settled();
+              settled = () => {};
             };
 
             more();
           });
         }
         else {
+          settled();
           const monitor = new StatsStream(size => {
             this.monitor(segment, position, size);
           });

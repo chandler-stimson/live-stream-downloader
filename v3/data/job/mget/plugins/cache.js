@@ -48,12 +48,10 @@ class CGet extends MyGet {
   // clean the cache
   fetch(...args) {
     return super.fetch(...args).then(r => {
-      console.log(1, this['cache-id']);
       caches.delete(this['cache-id']);
 
       return r;
     }).catch(e => {
-      console.log(2);
       caches.delete(this['cache-id']);
 
       throw Error(e);

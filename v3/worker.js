@@ -212,6 +212,18 @@ chrome.runtime.onMessage.addListener((request, sender, response) => {
 
     return true;
   }
+  else if (request.method === 'release-awake-if-possible') {
+    if (chrome.power) {
+      chrome.runtime.sendMessage({
+        method: 'any-active'
+      }, r => {
+        chrome.runtime.lastError;
+        if (r !== true) {
+          chrome.power.releaseKeepAwake();
+        }
+      });
+    }
+  }
 });
 
 /* delete all leftover cache requests */

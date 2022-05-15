@@ -28,8 +28,16 @@ events.before.push(() => {
     chrome.power.requestKeepAwake('display');
   }
 });
-events.after.push(() => {
-  if (chrome.power) {
-    chrome.power.releaseKeepAwake();
+events.after.push(() => chrome.runtime.sendMessage({
+  method: 'release-awake-if-possible'
+}, () => chrome.runtime.lastError));
+
+window.addEventListener('beforeunload', () => chrome.runtime.sendMessage({
+  method: 'release-awake-if-possible'
+}, () => chrome.runtime.lastError));
+
+chrome.runtime.onMessage.addListener((request, sender, response) => {
+  if (request.method === 'any-active' && document.body.dataset.mode === 'download') {
+    response(true);
   }
 });

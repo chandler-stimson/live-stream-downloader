@@ -226,6 +226,7 @@ class MGet {
                 break;
               }
             }
+
             // start the first part
             let actives = 1;
             const policy = new PolicyStream(this.options['thread-size']);
@@ -239,7 +240,8 @@ class MGet {
             }).catch(reject);
             // start other parts
             const more = () => {
-              for (let n = 0; n < this.number(); n += 1) {
+              const ns = this.number();
+              for (let n = 0; n < ns; n += 1) {
                 const start = ranges.shift();
                 if (start) {
                   actives += 1;

@@ -143,7 +143,11 @@ chrome.webRequest.onHeadersReceived.addListener(observe, {
       contexts: ['link'],
       targetUrlPatterns: [
         '*://*/*.flv*', '*://*/*.avi*', '*://*/*.wmv*', '*://*/*.mov*', '*://*/*.mp4*', '*://*/*.pcm*',
-        '*://*/*.wav*', '*://*/*.mp3*', '*://*/*.aac*', '*://*/*.ogg*', '*://*/*.wma*', '*://*/*.m3u8*'
+        '*://*/*.wav*', '*://*/*.mp3*', '*://*/*.aac*', '*://*/*.ogg*', '*://*/*.wma*', '*://*/*.m3u8*',
+        // extra formats
+        '*://*/*.zip*', '*://*/*.rar*', '*://*/*.7z*', '*://*/*.tar.gz*',
+        '*://*/*.img*', '*://*/*.iso*', '*://*/*.bin*',
+        '*://*/*.exe*', '*://*/*.dmg*', '*://*/*.deb*'
       ]
     });
     chrome.contextMenus.create({

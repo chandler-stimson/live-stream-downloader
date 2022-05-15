@@ -74,9 +74,9 @@ class DGet extends MyGet {
       // try to get the key multiple times
       for (let n = 0; ; n += 1) {
         try {
-          r = await fetch(href, {
+          r = await this.native(href, {
             'credentials': 'include'
-          });
+          }, true);
           if (r.ok) {
             break;
           }

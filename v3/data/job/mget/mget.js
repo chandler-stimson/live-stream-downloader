@@ -86,7 +86,7 @@ class MGet {
     return Promise.resolve();
   }
   /* get called once per new segment */
-  headers(segment, position, response) {
+  headers(segment, position, request, response) {
     return Promise.resolve();
   }
   /* get called when a segment is fully fetched */
@@ -167,6 +167,10 @@ class MGet {
     const stream = new self.MemoryWriter(position, offset, this.cache);
     return stream;
   }
+  /* returns the native fetch */
+  native(request, params, save = false) {
+    return fetch(request, params);
+  }
   /*
     starts a single thread. If server supports range and size is greater than 'thread-size', runs multiple threads
     settled is called when all segments are initiated. This can be used to asynchronously call other pipes if necessary
@@ -182,17 +186,17 @@ class MGet {
     }
 
     this.actives += 1;
-    return fetch(request, {
+    return this.native(request, {
       ...params,
       signal: this.controller.signal,
       credentials: 'include'
-    }).then(r => {
+    }, segment.cache).then(r => {
       const s = Number(r.headers.get('Content-Length'));
       const size = isNaN(s) ? 0 : Number(s);
 
       if (r.ok && this.sizes.has(position) === false) {
         this.sizes.set(position, size);
-        this.headers(segment, position, r);
+        this.headers(segment, position, request, r);
       }
 
       const writable = this.writer(segment, position);

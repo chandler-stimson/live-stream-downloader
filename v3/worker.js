@@ -214,6 +214,18 @@ chrome.runtime.onMessage.addListener((request, sender, response) => {
   }
 });
 
+/* delete all leftover cache requests */
+{
+  const once = async () => {
+    for (const key of await caches.keys()) {
+      await caches.delete(key);
+    }
+  };
+
+  chrome.runtime.onInstalled.addListener(once);
+  chrome.runtime.onStartup.addListener(once);
+}
+
 /* FAQs & Feedback */
 {
   const {management, runtime: {onInstalled, setUninstallURL, getManifest}, storage, tabs} = chrome;

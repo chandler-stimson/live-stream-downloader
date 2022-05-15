@@ -98,10 +98,12 @@ class SGet extends MyGet {
 
     return bytes.toFixed(dp) + ' ' + units[u];
   }
-  headers(segment, position, response) {
+  headers(segment, position, request, response) {
     if (position === 0) {
       self.MyGet.guess(response, this.meta);
     }
+
+    return super.headers(segment, position, request, response);
   }
 }
 

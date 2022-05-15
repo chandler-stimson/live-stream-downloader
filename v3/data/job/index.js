@@ -200,7 +200,8 @@ const download = async (segments, file) => {
     if (s.map && s.map.uri && s.map.uri !== s.uri) {
       return [{
         ...s,
-        uri: s.map.uri
+        uri: s.map.uri,
+        cache: true // cache this fetch
       }, s];
     }
     return s;

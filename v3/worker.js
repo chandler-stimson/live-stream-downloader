@@ -167,6 +167,12 @@ chrome.webRequest.onHeadersReceived.addListener(observe, {
       contexts: ['action', 'browser_action'],
       targetUrlPatterns: ['*://*/*']
     });
+    chrome.contextMenus.create({
+      title: 'Repair Video File',
+      id: 'repair',
+      contexts: ['action', 'browser_action'],
+      targetUrlPatterns: ['*://*/*']
+    });
   };
   chrome.runtime.onInstalled.addListener(once);
   chrome.runtime.onStartup.addListener(once);
@@ -203,6 +209,11 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       key: 'append',
       value: info.srcUrl
     }]);
+  }
+  else if (info.menuItemId === 'repair') {
+    chrome.tabs.create({
+      url: 'https://webbrowsertools.com/repair-video/'
+    });
   }
 });
 

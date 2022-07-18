@@ -172,11 +172,33 @@ class MGet {
     return fetch(request, params);
   }
   /*
+    returns a valid link with arguments from a segment
+    {
+      uri: 'a.mp4',
+      base: 'http://example.com?expires=1212'
+    } -> http://example.com/a.mp4?expires=1212
+  */
+  link(segment) {
+    const {href, search} = new URL(segment.uri, segment.base || undefined);
+    if (search === '') {
+      try {
+        const o = new URL(segment.base);
+        if (o.search) {
+          return href + o.search;
+        }
+      }
+      catch (e) {}
+    }
+
+    return href;
+  }
+  /*
     starts a single thread. If server supports range and size is greater than 'thread-size', runs multiple threads
     settled is called when all segments are initiated. This can be used to asynchronously call other pipes if necessary
   */
   pipe(segment, params, position = 0, settled = () => {}) {
-    const {href} = new URL(segment.uri, segment.base || undefined);
+    const href = this.link(segment);
+    console.log(href);
 
     const request = new Request(href, {
       method: segment.method || 'GET'

@@ -10,7 +10,8 @@
   <progress id="progress" value="0" max="100"></progress>
 
   <template id="entry">
-    <div class="entry">
+    <label class="entry">
+      <input type="checkbox" data-id="selected">
       <span data-id="name">Name</span>
       <span data-id="ext">Extension</span>
       <span data-id="size">Size</span>
@@ -18,7 +19,7 @@
       <input type="button" data-id="rename" value="Rename" disabled>
       <input type="button" data-id="copy" value="Copy">
       <input type="submit" value="Download">
-    </div>
+    </label>
   </template>
   <div id="intro">
     <div>There is no media on this tab. To add new downloading jobs:</div>
@@ -41,6 +42,15 @@
   </dialog>
   <div id="hrefs-container">
     <form id="hrefs"></form>
+  </div>
+  <div id="tools">
+    <input type="button" value="Select None" id="select-none">
+    <input type="button" value="Select All" id="select-all">
+    &bull;
+    <input type="button" value="Remove Duplicates" id="remove-duplicates">
+    <input type="button" value="Keep M3U8" id="keep-hls">
+    &bull;
+    <input type="button" value="Download All" disabled id="download-all">
   </div>
   <footer>
     <div title="Download jobs with 3 simultaneous threads to increase speed" id="threads-selector">
@@ -75,5 +85,6 @@
   <script type="text/javascript" src="plugins/drop.js"></script>
   <script type="text/javascript" src="plugins/footer.js"></script>
   <script type="text/javascript" src="plugins/filename.js"></script>
+  <script type="text/javascript" src="plugins/tools.js"></script>
 </body>
 </html>

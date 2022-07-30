@@ -11,7 +11,7 @@ body {
   background-color: var(--bg-light);
   color: #4d5156;
   display: grid;
-  grid-template-rows: 1fr min-content;
+  grid-template-rows: 1fr min-content min-content;
   margin: 0;
   height: 100vh;
 }
@@ -72,6 +72,11 @@ input[type=button] {
   box-shadow: rgba(0, 0, 0, 0.08) 0 1px 0, rgba(255, 255, 255, 0.75) 0 1px 2px inset;
   text-shadow: rgb(240, 240, 240) 0 1px 0;
 }
+input[type=submit]:not(:disabled),
+input[type=button]:not(:disabled) {
+  cursor: pointer;
+}
+
 select,
 button,
 textarea,
@@ -174,7 +179,7 @@ body:not([data-mode=empty]) #intro {
 }
 #hrefs {
   display: grid;
-  grid-template-columns: minmax(auto, 120px) repeat(2, min-content) 1fr repeat(3, min-content);
+  grid-template-columns: min-content minmax(auto, 120px) repeat(2, min-content) 1fr repeat(3, min-content);
   grid-gap: 10px 0;
   align-items: center;
   overflow: hidden;
@@ -219,4 +224,13 @@ body:not([data-mode=download]) #progress {
 }
 #progress[value=0] {
   display: none;
+}
+
+#tools {
+  padding: 10px;
+  text-align: end;
+  height: 32px;
+}
+body[data-mode=empty] #tools {
+  visibility: hidden;
 }

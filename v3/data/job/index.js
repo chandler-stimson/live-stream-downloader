@@ -117,7 +117,7 @@ const build = async os => {
   const t = document.getElementById('entry');
   for (const o of os) {
     const clone = document.importNode(t.content, true);
-    const div = clone.querySelector('div');
+    const div = clone.querySelector('label');
     const meta = {};
 
     const r = response(o instanceof File ? {
@@ -147,6 +147,8 @@ const build = async os => {
     div.meta = meta;
 
     document.getElementById('hrefs').appendChild(div);
+    const c = document.getElementById('hrefs-container');
+    c.scrollTop = c.scrollHeight;
   }
 
   document.body.dataset.mode = document.querySelector('form .entry') ? 'ready' : 'empty';
@@ -254,6 +256,10 @@ Press "Retry" to try one more time`);
     else {
       document.title = (stat.current / stat.total * 100).toFixed(1) +
         `% fetched [${stat.current}/${stat.total}] (${MyGet.size(stat.fetched)})` + ` [Threads: ${n.actives}]`;
+    }
+    //
+    if (self.aFile) {
+      document.title += ' Job [' + self.aFile.stat.index + '/' + self.aFile.stat.total + ']';
     }
   }, 750);
 
@@ -401,35 +407,45 @@ const parser = async (manifest, file, href) => {
   }
 };
 
+const options = div => {
+  const options = {
+    types: [{
+      description: 'Video or Audio Files'
+    }]
+  };
+
+  // this way, the file can get played while download is in progress
+  if (div.meta.ext === 'm3u8' || div.meta.ext === '') {
+    options.types[0].accept = {
+      'video/mkv': ['.mkv']
+    };
+    options.suggestedName =
+      (div.meta.gname || div.meta.name || 'Untitled') +
+      (div.meta.index ? (' - ' + div.meta.index) : '') +
+      '.mkv';
+  }
+  else if (div.meta.ext) {
+    if (div.meta.mime) {
+      options.types[0].accept = {
+        [div.meta.mime]: ['.' + div.meta.ext]
+      };
+    }
+    options.suggestedName =
+      (div.meta.gname || div.meta.name || 'Untitled') +
+      (div.meta.index ? (' - ' + div.meta.index) : '') +
+      '.' + div.meta.ext;
+  }
+
+  return options;
+};
+
 document.getElementById('hrefs').onsubmit = async e => {
   e.preventDefault();
-  const div = e.submitter.closest('div');
+  const div = e.submitter.closest('label');
   try {
     div.dataset.active = true;
 
-    const options = {
-      types: [{
-        description: 'Video or Audio Files'
-      }]
-    };
-
-    // this way, the file can get played will download is in progress
-    if (div.meta.ext === 'm3u8' || div.meta.ext === '') {
-      options.types[0].accept = {
-        'video/mkv': ['.mkv']
-      };
-      options.suggestedName = (div.meta.gname || div.meta.name || 'Untitled') + '.mkv';
-    }
-    else if (div.meta.ext) {
-      if (div.meta.mime) {
-        options.types[0].accept = {
-          [div.meta.mime]: ['.' + div.meta.ext]
-        };
-      }
-      options.suggestedName = (div.meta.gname || div.meta.name || 'Untitled') + '.' + div.meta.ext;
-    }
-
-    const file = await window.showSaveFilePicker(options);
+    const file = self.aFile || await window.showSaveFilePicker(options(div));
 
     // run pre
     for (const c of events.before) {

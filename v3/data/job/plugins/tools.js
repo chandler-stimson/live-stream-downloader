@@ -105,6 +105,9 @@
         entry.remove();
       }
     }
+    if (!hrefs.querySelector('.entry')) {
+      document.body.dataset.mode = 'empty';
+    }
   };
 }
 

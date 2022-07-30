@@ -187,6 +187,7 @@ const error = e => {
 
 const download = async (segments, file) => {
   document.body.dataset.mode = 'download';
+  progress.value = 0;
 
   // remove duplicated segments (e.g. video/fMP4)
   const links = [];
@@ -256,6 +257,9 @@ Press "Retry" to try one more time`);
     else {
       document.title = (stat.current / stat.total * 100).toFixed(1) +
         `% fetched [${stat.current}/${stat.total}] (${MyGet.size(stat.fetched)})` + ` [Threads: ${n.actives}]`;
+
+      progress.value = stat.current;
+      progress.max = stat.total;
     }
     //
     if (self.aFile) {

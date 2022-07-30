@@ -12,6 +12,7 @@
 const args = new URLSearchParams(location.search);
 
 const tabId = Number(args.get('tabId')); // original tab
+const progress = document.getElementById('progress');
 
 const events = {
   before: [], // before download begins
@@ -242,6 +243,9 @@ Press "Retry" to try one more time`);
         const percent = stat.fetched / n.sizes.get(0) * 100;
         document.title = percent.toFixed(1) + `% fetched [${MyGet.size(stat.fetched)}/${MyGet.size(n.sizes.get(0))}]` +
           ` [Threads: ${n.actives}]`;
+
+        progress.value = stat.fetched;
+        progress.max = n.sizes.get(0);
       }
       else {
         document.title = MyGet.size(stat.fetched) + ' fetched...';

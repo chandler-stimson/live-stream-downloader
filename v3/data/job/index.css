@@ -2,6 +2,7 @@
   --bg-light-dark: rgba(0, 0, 0, 0.05);
   --bg-dark: rgba(0, 0, 0, 0.25);
   --bg-light: #fff;
+  --bg-progress: #16a1b8;
 }
 
 body {
@@ -196,3 +197,26 @@ body:not([data-mode=empty]) #intro {
   margin-right: 2px;
 }
 
+#progress {
+  z-index: 10;
+  width: 100%;
+  color: var(--bg-progress);
+  height: 5px;
+}
+#progress,
+#progress::-webkit-progress-bar {
+  background-color: transparent;
+}
+#progress::-webkit-progress-value {
+  background: var(--bg-progress);
+}
+#progress::-moz-progress-bar {
+  background: var(--bg-progress);
+}
+
+body:not([data-mode=download]) #progress {
+  display: none;
+}
+#progress[value=0] {
+  display: none;
+}

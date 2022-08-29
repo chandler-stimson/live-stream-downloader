@@ -349,7 +349,11 @@ const parser = async (manifest, file, href) => {
 
   const playlists = p.manifest.playlists || [];
   if (playlists.length) {
-    const msgs = [];
+    const {quality} = await storage.get({
+      quality: 'selector'
+    });
+
+    let n = 0; // highest
     // sort based on highest quality
     playlists.sort((a, b) => {
       try {
@@ -359,31 +363,37 @@ const parser = async (manifest, file, href) => {
         return 0;
       }
     });
+    if (quality === 'selector') {
+      const msgs = [];
 
-    for (const playlist of playlists) {
-      if (playlist.attributes && playlist.attributes.RESOLUTION) {
-        msgs.push(playlist.attributes.RESOLUTION.width + ' × ' + playlist.attributes.RESOLUTION.height + ' -> ' + playlist.uri.substr(-60));
+      for (const playlist of playlists) {
+        if (playlist.attributes && playlist.attributes.RESOLUTION) {
+          msgs.push(playlist.attributes.RESOLUTION.width + ' × ' + playlist.attributes.RESOLUTION.height + ' -> ' + playlist.uri.substr(-60));
+        }
+        else {
+          msgs.push(playlist.uri.substr(-30));
+        }
       }
-      else {
-        msgs.push(playlist.uri.substr(-30));
-      }
+      n = (playlists.length > 1 ? await prompt('Select one stream:\n\n' + msgs.map((m, n) => n + '. ' + m).join('\n'), {
+        ok: 'Select Quality',
+        no: 'Abort',
+        value: 0
+      }, true) : 0);
     }
-    const n = (playlists.length > 1 ? await prompt('Select one stream:\n\n' + msgs.map((m, n) => n + '. ' + m).join('\n'), {
-      ok: 'Select Quality',
-      no: 'Abort',
-      value: 0
-    }, true) : 0);
+    else if (quality === 'lowest') {
+      n = playlists.length - 1;
+    }
 
-    if (isNaN(n) === false) {
-      const v = playlists[Number(n)];
-      if (v) {
-        try {
-          const o = new URL(v.uri, href || undefined);
-          return parser(o.href, file);
-        }
-        catch (e) {
-          return parser(v.uri, file, href);
-        }
+    console.log(n, quality);
+
+    const v = playlists[Number(n)];
+    if (v) {
+      try {
+        const o = new URL(v.uri, href || undefined);
+        return parser(o.href, file);
+      }
+      catch (e) {
+        return parser(v.uri, file, href);
       }
     }
     throw Error('UNKNOWN_QUALITY');

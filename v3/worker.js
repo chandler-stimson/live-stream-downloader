@@ -161,29 +161,12 @@ chrome.webRequest.onHeadersReceived.addListener(observe, {
       contexts: ['action', 'browser_action'],
       targetUrlPatterns: ['*://*/*']
     });
-    chrome.contextMenus.create({
-      title: 'Test Video Downloading',
-      id: 'test',
-      contexts: ['action', 'browser_action'],
-      targetUrlPatterns: ['*://*/*']
-    });
-    chrome.contextMenus.create({
-      title: 'Repair Video File',
-      id: 'repair',
-      contexts: ['action', 'browser_action'],
-      targetUrlPatterns: ['*://*/*']
-    });
   };
   chrome.runtime.onInstalled.addListener(once);
   chrome.runtime.onStartup.addListener(once);
 }
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === 'test') {
-    chrome.tabs.create({
-      url: 'https://webbrowsertools.com/test-download-with/'
-    });
-  }
-  else if (info.menuItemId === 'clear') {
+  if (info.menuItemId === 'clear') {
     chrome.storage.session.remove(tab.id + '');
     chrome.action.setIcon({
       tabId: tab.id,
@@ -209,11 +192,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       key: 'append',
       value: info.srcUrl
     }]);
-  }
-  else if (info.menuItemId === 'repair') {
-    chrome.tabs.create({
-      url: 'https://webbrowsertools.com/repair-video/'
-    });
   }
 });
 
@@ -249,6 +227,17 @@ chrome.runtime.onMessage.addListener((request, sender, response) => {
     }
   };
 
+  chrome.runtime.onInstalled.addListener(once);
+  chrome.runtime.onStartup.addListener(once);
+}
+
+/* delete all old indexedDB databases left from "v2" version */
+{
+  const once = () => indexedDB.databases().then(dbs => {
+    for (const db of dbs) {
+      indexedDB.deleteDatabase(db.Name);
+    }
+  });
   chrome.runtime.onInstalled.addListener(once);
   chrome.runtime.onStartup.addListener(once);
 }

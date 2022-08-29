@@ -53,8 +53,23 @@
     <input type="button" value="Download All" disabled id="download-all">
   </div>
   <footer>
-    <div title="Download jobs with 3 simultaneous threads to increase speed" id="threads-selector">
-      <b>Number of Threads</b>: <span id="threads">3</span>
+    <div id="options">
+      <div>
+        <div>
+          <label for="threads">Number of Threads (1-5)</label>
+          <input type="number" min="1" max="5" value="3" id="threads" title="Download jobs with multiple threads to increase speed">
+          <span class="sep"></span>
+          <label for="quality-selector">Show Quality Selector</label>
+          <input type="radio" name="quality" checked id="quality-selector">
+          <label for="quality-highest">Select Highest Quality</label>
+          <input type="radio" name="quality" id="quality-highest">
+          <label for="quality-lowest">Select Lowest Quality</label>
+          <input type="radio" name="quality" id="quality-lowest">
+          <span class="sep"></span>
+          <a target="_blank" href="https://webbrowsertools.com/test-download-with/">Test Video Downloading</a>
+          <a target="_blank" href="https://webbrowsertools.com/repair-video/">Repair Video File</a>
+        </div>
+      </div>
     </div>
     <div title="All requests to the server will contain this URL as the Referrer header. Click to copy to the clipboard" id="referer-selector">
       <b>Referrer</b>: <span id="referer">-</span>
@@ -80,6 +95,7 @@
   <!-- Plugins -->
   <script type="text/javascript" src="plugins/unload.js"></script>
   <script type="text/javascript" src="plugins/threads.js"></script>
+  <script type="text/javascript" src="plugins/quality.js"></script>
   <script type="text/javascript" src="plugins/referer.js"></script>
   <script type="text/javascript" src="plugins/permission.js"></script>
   <script type="text/javascript" src="plugins/drop.js"></script>

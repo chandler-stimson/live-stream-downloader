@@ -2,7 +2,7 @@
   --bg-light-dark: rgba(0, 0, 0, 0.05);
   --bg-dark: rgba(0, 0, 0, 0.25);
   --bg-light: #fff;
-  --bg-progress: #16a1b8;
+  --bg-progress: #0074cc;
 }
 
 body {
@@ -14,6 +14,7 @@ body {
   grid-template-rows: 1fr min-content min-content;
   margin: 0;
   height: 100vh;
+  accent-color: var(--bg-dark);
 }
 body[data-mode=error] {
   background-color: #ffdcdc;
@@ -49,17 +50,24 @@ body[data-mode=download]::before {
 footer {
   border-top: solid 4px var(--bg-light-dark);
   display: grid;
-  grid-template-columns: max-content 2fr 1fr 1fr;
+  grid-template-columns: min-content repeat(3, 1fr);
   grid-gap: 10px;
   padding: 10px;
   white-space: nowrap;
   z-index: 2;
+  align-items: center;
 }
 footer > div {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: pointer;
+  transition: opacity 0.5s;
+  opacity: 1;
+}
+footer > div[id$=-selector]:active {
+  opacity: 0.5;
+  transition: 0s;
 }
 
 select,
@@ -137,6 +145,7 @@ body:not([data-mode=empty]) #intro {
   display: block;
   overflow: auto;
   white-space: pre;
+  max-height: 50vh;
 }
 #prompt > form {
   background-color: var(--bg-light-dark);
@@ -194,7 +203,7 @@ body:not([data-mode=empty]) #intro {
   padding: 8px;
 }
 
-#hrefs .entry:nth-child(2n) * {
+#hrefs .entry:nth-child(2n) [data-id="href"] {
   background-color: var(--bg-light-dark);
 }
 
@@ -233,4 +242,56 @@ body:not([data-mode=download]) #progress {
 }
 body[data-mode=empty] #tools {
   visibility: hidden;
+}
+
+#options {
+  width: 18px;
+  height: 18px;
+  background: url('images/options.svg') center center no-repeat;
+  background-size: 18px;
+  position: relative;
+  overflow: visible;
+}
+
+#options > div {
+  position: absolute;
+  bottom: 0;
+  z-index: 2;
+  padding-bottom: 32px;
+  cursor: default;
+  visibility: hidden;
+  transition: visibility 0.5s;
+}
+#options > div > div {
+  box-shadow: 0 0 2px var(--bg-dark);
+  background-color: var(--bg-light);
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 1fr min-content;
+  align-items: center;
+  grid-gap: 10px;
+}
+#options:hover > div {
+  visibility: visible;
+}
+#options input,
+#options label {
+  cursor: pointer;
+}
+#options input {
+  background-color: var(--bg-light-dark);
+  border: none;
+  min-width: 40px;
+}
+#options .sep,
+#options a {
+  grid-column: 1/3;
+}
+#options .sep {
+  background-color: var(--bg-light-dark);
+  height: 4px;
+}
+#options a {
+  text-decoration: none;
+  color: var(--bg-progress);
 }

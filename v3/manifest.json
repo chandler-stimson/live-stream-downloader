@@ -1,5 +1,5 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "version": "0.3.4",
   "name": "Live Stream Downloader",
   "description": "__MSG_description__",
@@ -8,7 +8,12 @@
     "storage",
     "contextMenus",
     "webRequest",
-    "declarativeNetRequest",
+    "declarativeNetRequest"
+  ],
+  "optional_permissions": [
+    "power"
+  ],
+  "host_permissions": [
     "*://*/*.flv*",
     "*://*/*.avi*",
     "*://*/*.wmv*",
@@ -22,15 +27,9 @@
     "*://*/*.wma*",
     "*://*/*.m3u8*"
   ],
-  "optional_permissions": [
-    "power"
-  ],
   "homepage_url": "https://add0n.com/hls-downloader.html",
   "background": {
-    "scripts": [
-      "v2.js",
-      "worker.js"
-    ]
+    "service_worker": "worker.js"
   },
   "icons": {
     "16": "data/icons/16.png",
@@ -42,7 +41,7 @@
     "256": "data/icons/256.png",
     "512": "data/icons/512.png"
   },
-  "browser_action": {
+  "action": {
     "default_title": "Download HLS Streams"
   }
 }

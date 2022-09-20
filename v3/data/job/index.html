@@ -56,8 +56,14 @@
     <div id="options">
       <div>
         <div>
+          <label for="filename">Filename <a data-href="faq10" target="_blank">Format</a></label>
+          <input type="text" id="filename" title="Filename format:
+
+Acceptable Keywords: [meta.name] (default), [title], [hostname]">
           <label for="threads">Number of Threads (1-5)</label>
           <input type="number" min="1" max="5" value="3" id="threads" title="Download jobs with multiple threads to increase speed">
+          <label for="power">Keep Awake</label>
+          <input type="checkbox" id="power">
           <span class="sep"></span>
           <label for="quality-selector">Show Quality Selector</label>
           <input type="radio" name="quality" checked id="quality-selector">
@@ -102,5 +108,6 @@
   <script type="text/javascript" src="plugins/footer.js"></script>
   <script type="text/javascript" src="plugins/filename.js"></script>
   <script type="text/javascript" src="plugins/tools.js"></script>
+  <script type="text/javascript" src="plugins/links.js"></script>
 </body>
 </html>

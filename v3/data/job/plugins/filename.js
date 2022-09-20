@@ -1,31 +1,20 @@
 /* global storage */
-{
-  const div = document.createElement('div');
-  div.textContent = 'Use Ctrl + N or Command + N to change filename format';
 
-  document.getElementById('intro').appendChild(div);
-}
-
-window.addEventListener('keydown', e => {
-  const meta = e.ctrlKey || e.metaKey;
-
-  if (e.code === 'KeyN' && meta) {
-    e.preventDefault();
-
-    storage.get({
-      'filename': '[meta.name]' // [meta.name], [title], [hostname]
-    }).then(prefs => {
-      self.prompt('Filename format:\n\nAcceptable Keywords: [meta.name], [title], [hostname]', {
-        ok: 'Change',
-        no: 'Abort',
-        value: prefs.filename
-      }, true).then(filename => {
-        storage.set({
-          filename: filename || '[meta.name]'
-        }).then(() => location.reload());
-      });
-    });
-  }
+storage.get({
+  'filename': '[meta.name]' // [meta.name], [title], [hostname]
+}).then(prefs => {
+  document.getElementById('filename').value = prefs.filename;
 });
 
+const changed = target => {
+  storage.set({
+    filename: target.value || '[meta.name]'
+  }).then(() => self.notify('Done, Reopen this window to apply', 2000));
+};
 
+
+let id;
+document.getElementById('filename').addEventListener('input', e => {
+  id = clearTimeout(id);
+  id = setTimeout(changed, 2000, e.target);
+});

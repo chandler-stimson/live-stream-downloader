@@ -1,7 +1,7 @@
 /* global args */
 
-document.getElementById('page').textContent = args.get('href') || '-';
-document.getElementById('title').textContent = args.get('title') || '-';
+document.getElementById('page').textContent = args.get('href') || 'Blank';
+document.getElementById('title').textContent = args.get('title') || 'Blank';
 
 document.getElementById('referer-selector').onclick = () => {
   navigator.clipboard.writeText(document.getElementById('referer').textContent)

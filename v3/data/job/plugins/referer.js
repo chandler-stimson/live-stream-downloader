@@ -1,6 +1,6 @@
 /* global events args */
 
-document.getElementById('referer').textContent = args.get('href') || '-';
+document.getElementById('referer').textContent = args.get('href') || 'Empty';
 
 const net = {
   async add(initiator) {
@@ -50,8 +50,10 @@ const net = {
 
 events.before.push(async o => {
   const referer = o.initiator || args.get('href');
-  await net.add(referer);
-  document.getElementById('referer').textContent = referer;
+  if (referer.startsWith('http')) {
+    await net.add(referer);
+  }
+  document.getElementById('referer').textContent = referer || 'Empty';
 });
 
 events.after.push(() => {

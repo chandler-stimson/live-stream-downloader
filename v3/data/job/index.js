@@ -28,7 +28,7 @@ const storage = {
   }
 };
 
-document.title += ' from "' + args.get('title') + '"';
+document.title += ' from "' + (args.get('title') || 'New Tab') + '"';
 
 self.notify = (msg, timeout = 750) => {
   if (self.notify.id === undefined) {

@@ -1,6 +1,6 @@
 :root {
   --bg-light-dark: rgba(0, 0, 0, 0.05);
-  --bg-dark: rgba(0, 0, 0, 0.25);
+  --bg-dark: #4d5155;
   --bg-light: #fff;
   --bg-progress: #0074cc;
 }
@@ -50,9 +50,7 @@ body[data-mode=download]::before {
 footer {
   border-top: solid 4px var(--bg-light-dark);
   display: grid;
-  grid-template-columns: min-content repeat(3, 1fr);
-  grid-gap: 10px;
-  padding: 10px;
+  grid-template-columns: min-content repeat(3, minmax(10px, min-content));
   white-space: nowrap;
   z-index: 2;
   align-items: center;
@@ -64,6 +62,7 @@ footer > div {
   cursor: pointer;
   transition: opacity 0.5s;
   opacity: 1;
+  padding: 10px;
 }
 footer > div[id$=-selector]:active {
   opacity: 0.5;
@@ -251,16 +250,18 @@ body[data-mode=empty] #tools {
   background-size: 18px;
   position: relative;
   overflow: visible;
+  user-select: none;
+  border-right: solid 5px var(--bg-light-dark);
 }
 
 #options > div {
   position: absolute;
   bottom: 0;
+  left: 5px;
   z-index: 2;
-  padding-bottom: 32px;
+  padding-bottom: 44px;
   cursor: default;
   visibility: hidden;
-  transition: visibility 0.5s;
 }
 #options > div > div {
   box-shadow: 0 0 2px var(--bg-dark);
@@ -281,7 +282,12 @@ body[data-mode=empty] #tools {
 #options input {
   background-color: var(--bg-light-dark);
   border: none;
-  min-width: 40px;
+  cursor: text;
+  justify-self: end;
+}
+#options input[type=text],
+#options input[type=number] {
+  width: 20ch;
 }
 #options .sep,
 #options a {

@@ -14,8 +14,8 @@ const open = async (tab, extra = []) => {
   }, prefs => {
     const args = new URLSearchParams();
     args.set('tabId', tab.id);
-    args.set('title', tab.title || 'This Page');
-    args.set('href', tab.url);
+    args.set('title', tab.title || '');
+    args.set('href', tab.url || '');
     for (const {key, value} of extra) {
       args.set(key, value);
     }
@@ -30,7 +30,7 @@ const open = async (tab, extra = []) => {
     });
   });
 };
-chrome.action.onClicked.addListener(async tab => open(tab));
+chrome.action.onClicked.addListener(tab => open(tab));
 chrome.action.setBadgeBackgroundColor({
   color: '#666666'
 });

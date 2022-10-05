@@ -257,9 +257,9 @@ body[data-mode=empty] #tools {
 #options > div {
   position: absolute;
   bottom: 0;
-  left: 5px;
+  left: 0;
   z-index: 2;
-  padding-bottom: 44px;
+  padding: 25px 25px 44px 5px;
   cursor: default;
   visibility: hidden;
 }

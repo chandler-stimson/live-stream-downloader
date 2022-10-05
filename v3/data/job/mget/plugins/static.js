@@ -70,7 +70,8 @@ class SGet extends MyGet {
     else {
       const fe = (href.substring(href.lastIndexOf('/') + 1) || 'unknown').slice(-100);
 
-      const e = /(.+)\.([^.]{1,5})*$/.exec(fe);
+      // valid file extension "*.webvtt"
+      const e = /(.+)\.([^.]{1,6})*$/.exec(fe);
 
       meta.name = e ? e[1] : fe;
       meta.mime = resp.headers.get('Content-Type') || '';

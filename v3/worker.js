@@ -128,7 +128,7 @@ chrome.webRequest.onHeadersReceived.addListener(observe, {
 }, ['responseHeaders']);
 chrome.webRequest.onHeadersReceived.addListener(observe, {
   urls: [
-    '*://*/*.flv*', '*://*/*.avi*', '*://*/*.wmv*', '*://*/*.mov*', '*://*/*.mp4*',
+    '*://*/*.flv*', '*://*/*.avi*', '*://*/*.wmv*', '*://*/*.mov*', '*://*/*.mp4*', '*://*/*.webm*',
     '*://*/*.pcm*', '*://*/*.wav*', '*://*/*.mp3*', '*://*/*.aac*', '*://*/*.ogg*', '*://*/*.wma*',
     '*://*/*.m3u8*'
   ],
@@ -136,11 +136,12 @@ chrome.webRequest.onHeadersReceived.addListener(observe, {
 }, ['responseHeaders']);
 // https://iandevlin.com/html5/webvtt-example.html
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/track
+// https://demos.jwplayer.com/closed-captions/
 chrome.webRequest.onHeadersReceived.addListener(observe, {
   urls: [
-    '*://*/*.vtt*', '*://*/*.srt*'
+    '*://*/*.vtt*', '*://*/*.webvtt*', '*://*/*.srt*'
   ],
-  types: ['other']
+  types: ['xmlhttprequest', 'other']
 }, ['responseHeaders']);
 
 

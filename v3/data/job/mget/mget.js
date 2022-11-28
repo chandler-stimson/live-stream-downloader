@@ -198,7 +198,6 @@ class MGet {
   */
   pipe(segment, params, position = 0, settled = () => {}) {
     const href = this.link(segment);
-    console.log(href);
 
     const request = new Request(href, {
       method: segment.method || 'GET'

@@ -48,7 +48,7 @@ const net = {
   }
 };
 
-events.before.push(async o => {
+events.before.add(async o => {
   const referer = o.initiator || args.get('href');
   if (referer.startsWith('http')) {
     await net.add(referer);
@@ -56,6 +56,6 @@ events.before.push(async o => {
   document.getElementById('referer').textContent = referer || 'Empty';
 });
 
-events.after.push(() => {
+events.after.add(() => {
   net.remove();
 });

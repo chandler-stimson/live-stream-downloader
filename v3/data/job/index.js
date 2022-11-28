@@ -15,8 +15,8 @@ const tabId = Number(args.get('tabId')); // original tab
 const progress = document.getElementById('progress');
 
 const events = {
-  before: [], // before download begins
-  after: [] // after download ends
+  before: new Set(), // before download begins
+  after: new Set() // after download ends
 };
 
 const storage = {
@@ -500,7 +500,9 @@ document.getElementById('hrefs').onsubmit = async e => {
 
   // run post
   for (const c of events.after) {
-    c();
+    /* success, done */
+
+    c(document.body.dataset.mode === 'done', 'aFile' in self ? self.aFile.stat.index === self.aFile.stat.total : true);
   }
 
   div.dataset.active = false;

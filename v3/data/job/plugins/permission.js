@@ -27,12 +27,12 @@ document.getElementById('power').addEventListener('change', e => {
   }
 });
 
-events.before.push(() => {
+events.before.add(() => {
   if (chrome.power) {
     chrome.power.requestKeepAwake('display');
   }
 });
-events.after.push(() => chrome.runtime.sendMessage({
+events.after.add(() => chrome.runtime.sendMessage({
   method: 'release-awake-if-possible'
 }, () => chrome.runtime.lastError));
 

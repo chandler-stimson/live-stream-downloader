@@ -64,7 +64,7 @@
         }
       };
       next.total = divs.length;
-      events.after.push(next);
+      events.after.add(next);
       next();
     }
     catch (e) {

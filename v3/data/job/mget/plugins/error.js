@@ -31,13 +31,20 @@ class EGet extends MyGet {
     this.options['error-tolerance'] = 10; // number; number of times a single uri can throw error before breaking
     this.options['error-delay'] = 300; // ms; min-delay before restarting the segment
     this.options['error-handler'] = e => Promise.reject(e);
+    this.options['error-recovery'] = true; // if true, the extension does not download already download chunks of a segment anymore
 
     this.errors = new WeakMap(); // stores error counts
   }
   monitor(...args) {
     super.monitor(...args);
     // when data is received, reset the error count
-    const [segment] = args;
+    const [segment,, size] = args;
+
+    // do not download already fetched chunks
+    if (this.options['error-recovery'] && segment.range) {
+      segment.range.start += size;
+    }
+
     this.errors.set(segment, 0);
   }
   async pipe(...args) {

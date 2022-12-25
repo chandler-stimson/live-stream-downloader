@@ -86,22 +86,29 @@ const observe = d => {
   chrome.storage.session.get({
     [d.tabId]: []
   }, prefs => {
-    if (prefs[d.tabId].indexOf(d.url) === -1) {
-      const hrefs = prefs[d.tabId].map(o => o.url);
+    const hrefs = prefs[d.tabId].map(o => o.url);
 
-      if (hrefs.indexOf(d.url) === -1) {
-        prefs[d.tabId].push({
-          url: d.url,
-          initiator: d.initiator,
-          timeStamp: d.timeStamp,
-          responseHeaders: d.responseHeaders.filter(o => HEADERS.indexOf(o.name.toLowerCase()) !== -1)
-        });
-        prefs[d.tabId] = prefs[d.tabId].slice(-300);
-        chrome.storage.session.set(prefs);
-        badge(prefs[d.tabId].length, d.tabId);
-      }
+    if (hrefs.includes(d.url) === false) {
+      prefs[d.tabId].push({
+        url: d.url,
+        initiator: d.initiator,
+        timeStamp: d.timeStamp,
+        responseHeaders: d.responseHeaders.filter(o => HEADERS.indexOf(o.name.toLowerCase()) !== -1)
+      });
+      prefs[d.tabId] = prefs[d.tabId].slice(-200);
+      chrome.storage.session.set(prefs);
+      badge(prefs[d.tabId].length, d.tabId);
     }
   });
+};
+observe.mime = d => {
+  for (const {name, value} of d.responseHeaders) {
+    if (name === 'content-type' && value && (
+      value.startsWith('video/') || value.startsWith('audio/')
+    )) {
+      return observe(d);
+    }
+  }
 };
 
 /* clear old list on remove */
@@ -143,7 +150,24 @@ chrome.webRequest.onHeadersReceived.addListener(observe, {
   ],
   types: ['xmlhttprequest', 'other']
 }, ['responseHeaders']);
-
+// watch for video and audio mime-types
+{
+  const run = () => chrome.storage.local.get({
+    'mime-watch': false
+  }, prefs => {
+    if (prefs['mime-watch']) {
+      chrome.webRequest.onHeadersReceived.addListener(observe.mime, {
+        urls: ['*://*/*'],
+        types: ['xmlhttprequest']
+      }, ['responseHeaders']);
+    }
+    else {
+      chrome.webRequest.onHeadersReceived.removeListener(observe.mime);
+    }
+  });
+  run();
+  chrome.storage.onChanged.addListener(ps => ps['mime-watch'] && run());
+}
 
 /* context menu */
 {

@@ -31,21 +31,35 @@ class EGet extends MyGet {
     this.options['error-tolerance'] = 10; // number; number of times a single uri can throw error before breaking
     this.options['error-delay'] = 300; // ms; min-delay before restarting the segment
     this.options['error-handler'] = e => Promise.reject(e);
+
+    this.errors = new WeakMap(); // stores error counts
+  }
+  monitor(...args) {
+    super.monitor(...args);
+    // when data is received, reset the error count
+    const [segment] = args;
+    this.errors.set(segment, 0);
   }
   async pipe(...args) {
-    for (let n = 0; ; n += 1) {
+    const [segment] = args;
+
+    this.errors.set(segment, -1);
+    for (;;) {
+      const n = this.errors.get(segment) + 1;
+      this.errors.set(segment, n);
+
       try {
         const r = await super.pipe(...args);
         return r;
       }
       catch (e) {
-        console.log('pipe is broken', e.message);
+        console.info('pipe is broken', e.message);
         if (this.controller.signal.aborted) {
           throw e;
         }
         if (n > this.options['error-tolerance']) {
           await this.options['error-handler'](e, 'BROKEN_PIPE');
-          n = 0;
+          this.errors.set(segment, 0);
         }
       }
       const delay = Math.min(5000, this.options['error-delay'] * n);

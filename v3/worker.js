@@ -135,7 +135,7 @@ chrome.webRequest.onHeadersReceived.addListener(observe, {
 }, ['responseHeaders']);
 chrome.webRequest.onHeadersReceived.addListener(observe, {
   urls: [
-    '*://*/*.flv*', '*://*/*.avi*', '*://*/*.wmv*', '*://*/*.mov*', '*://*/*.mp4*', '*://*/*.webm*',
+    '*://*/*.flv*', '*://*/*.avi*', '*://*/*.wmv*', '*://*/*.mov*', '*://*/*.mp4*', '*://*/*.webm*', '*://*/*.mkv*',
     '*://*/*.pcm*', '*://*/*.wav*', '*://*/*.mp3*', '*://*/*.aac*', '*://*/*.ogg*', '*://*/*.wma*',
     '*://*/*.m3u8*'
   ],
@@ -169,6 +169,9 @@ chrome.webRequest.onHeadersReceived.addListener(observe, {
   chrome.storage.onChanged.addListener(ps => ps['mime-watch'] && run());
 }
 
+/* extra objects */
+const extra = {};
+
 /* context menu */
 {
   const once = () => {
@@ -177,7 +180,7 @@ chrome.webRequest.onHeadersReceived.addListener(observe, {
       id: 'download-link',
       contexts: ['link'],
       targetUrlPatterns: [
-        '*://*/*.flv*', '*://*/*.avi*', '*://*/*.wmv*', '*://*/*.mov*', '*://*/*.mp4*', '*://*/*.pcm*',
+        '*://*/*.flv*', '*://*/*.avi*', '*://*/*.wmv*', '*://*/*.mov*', '*://*/*.mp4*', '*://*/*.pcm*', '*://*/*.mkv*',
         '*://*/*.wav*', '*://*/*.mp3*', '*://*/*.aac*', '*://*/*.ogg*', '*://*/*.wma*', '*://*/*.m3u8*',
         // extra formats
         '*://*/*.zip*', '*://*/*.rar*', '*://*/*.7z*', '*://*/*.tar.gz*',
@@ -189,6 +192,11 @@ chrome.webRequest.onHeadersReceived.addListener(observe, {
       title: 'Download with Live Stream Downloader',
       id: 'download-media',
       contexts: ['audio', 'video']
+    });
+    chrome.contextMenus.create({
+      title: 'Extract Links',
+      id: 'extract-links',
+      contexts: ['selection']
     });
     chrome.contextMenus.create({
       title: 'Clear Detected Media List',
@@ -228,6 +236,55 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       value: info.srcUrl
     }]);
   }
+  else if (info.menuItemId === 'extract-links') {
+    chrome.permissions.request({
+      permissions: ['scripting']
+    }, granted => {
+      if (granted) {
+        chrome.scripting.executeScript({
+          target: {
+            tabId: tab.id
+          },
+          injectImmediately: true,
+          func: () => {
+            const div = document.createElement('div');
+            const rLinks = [];
+            const selection = window.getSelection();
+            for (let i = 0; i < selection.rangeCount; i++) {
+              const range = selection.getRangeAt(i);
+              const f = range.cloneContents();
+              div.appendChild(f);
+
+              const n = range.commonAncestorContainer;
+              if (n.nodeType === Node.ELEMENT_NODE) {
+                rLinks.push(n.href);
+              }
+              else {
+                rLinks.push(n.parentNode.href);
+              }
+            }
+            const links = [...rLinks, ...[...div.querySelectorAll('a')].map(a => a.href)];
+
+            const re = /(\b(https?|file):\/\/[-A-Z0-9+&@#\\/%?=~_|!:,.;]*[-A-Z0-9+&@#\\/%=~_|])/gi;
+            links.push(
+              ...(selection.toString().match(re) || []) .map(s => s.replace(/&amp;/g, '&'))
+            );
+
+            return links.filter(href => href).filter((s, i, l) => s && l.indexOf(s) === i);
+          }
+        }).then(a => {
+          const links = a.map(o => o.result || []).flat();
+
+          extra[tab.id] = links;
+
+          open(tab, [{
+            key: 'extra',
+            value: true
+          }]);
+        });
+      }
+    });
+  }
 });
 
 chrome.runtime.onMessage.addListener((request, sender, response) => {
@@ -251,6 +308,10 @@ chrome.runtime.onMessage.addListener((request, sender, response) => {
         }
       });
     }
+  }
+  else if (request.method === 'get-extra') {
+    response(extra[request.tabId] || []);
+    delete extra[request.tabId];
   }
 });
 

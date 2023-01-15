@@ -157,12 +157,31 @@ const build = async os => {
 chrome.runtime.sendMessage({
   method: 'get-jobs',
   tabId
-}, os => {
+}, async os => {
   if (args.has('append')) {
     os.push({
       url: args.get('append')
     });
   }
+  if (args.get('extra') === 'true') {
+    try {
+      const links = await new Promise(resolve => chrome.runtime.sendMessage({
+        method: 'get-extra',
+        tabId
+      }, resolve));
+      console.log(2, links);
+
+      for (const url of links) {
+        os.push({
+          url
+        });
+      }
+    }
+    catch (e) {
+      console.error(e);
+    }
+  }
+
   // m3u8 on top
   os.sort((a, b) => {
     const ah = a.url.indexOf('m3u8') !== -1;

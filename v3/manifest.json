@@ -11,7 +11,8 @@
     "declarativeNetRequest"
   ],
   "optional_permissions": [
-    "power"
+    "power",
+    "scripting"
   ],
   "host_permissions": [
     "*://*/*.flv*",

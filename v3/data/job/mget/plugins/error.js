@@ -42,7 +42,9 @@ class EGet extends MyGet {
 
     // do not download already fetched chunks
     if (this.options['error-recovery'] && segment.range) {
-      segment.range.start += size;
+      if (segment.range.start + size < segment.range.end) {
+        segment.range.start += size;
+      }
     }
 
     // reset error counter

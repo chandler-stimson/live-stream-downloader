@@ -15,10 +15,12 @@ const net = {
     }, resolve));
     const cId = net.id = tab.id;
 
+    const {origin} = new URL(initiator);
+
     const headers = [{
       'operation': 'set',
       'header': 'origin',
-      'value': initiator
+      'value': origin
     }, {
       'operation': 'set',
       'header': 'referer',

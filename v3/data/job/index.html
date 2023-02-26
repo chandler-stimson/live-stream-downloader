@@ -1,5 +1,5 @@
-<!DOCTYPE html>
 <html translate="no">
+<!DOCTYPE html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -70,6 +70,8 @@ Acceptable Keywords: [meta.name] (default), [title], [hostname]">
             <a data-href="faq12" target="_blank">Improved Media Detection</a>
           </label>
           <input type="checkbox" id="mime-watch">
+          <label for="error-recovery">Do not Download Duplicated Segments</label>
+          <input type="checkbox" id="error-recovery">
           <span class="sep"></span>
           <label for="quality-selector">Show Quality Selector</label>
           <input type="radio" name="quality" checked id="quality-selector">
@@ -116,5 +118,6 @@ Acceptable Keywords: [meta.name] (default), [title], [hostname]">
   <script type="text/javascript" src="plugins/tools.js"></script>
   <script type="text/javascript" src="plugins/links.js"></script>
   <script type="text/javascript" src="plugins/mime.js"></script>
+  <script type="text/javascript" src="plugins/error-recovery.js"></script>
 </body>
 </html>

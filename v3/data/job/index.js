@@ -245,9 +245,10 @@ const download = async (segments, file) => {
       return super.monitor(...args);
     }
   };
-  n.options.threads = (await storage.get({
-    threads: MyGet.OPTIONS.threads
-  })).threads;
+  Object.assign(n.options, await storage.get({
+    'threads': MyGet.OPTIONS.threads,
+    'error-recovery': MyGet.OPTIONS['error-recovery']
+  }));
 
   // instead of breaking, let the user retry
   n.options['error-handler'] = (e, source) => {

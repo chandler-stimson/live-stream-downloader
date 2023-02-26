@@ -8,7 +8,7 @@
     "storage",
     "contextMenus",
     "webRequest",
-    "declarativeNetRequest"
+    "declarativeNetRequestWithHostAccess"
   ],
   "optional_permissions": [
     "power",
@@ -28,7 +28,7 @@
     "*://*/*.wma*",
     "*://*/*.m3u8*"
   ],
-  "homepage_url": "https://add0n.com/hls-downloader.html",
+  "homepage_url": "https://webextension.org/listing/hls-downloader.html",
   "background": {
     "service_worker": "worker.js"
   },

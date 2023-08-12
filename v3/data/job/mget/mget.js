@@ -264,7 +264,7 @@ class MGet {
         if (rangable && size > this.options['thread-size']) {
           segment.extraThreads = segment.extraThreads || new Set();
 
-          const v = new Promise((resolve, reject) => {
+          return new Promise((resolve, reject) => {
             let start = segment.range?.start || 0;
             const end = segment.range?.end || size - 1;
 
@@ -333,7 +333,6 @@ class MGet {
             };
             more();
           });
-          return v;
         }
         else {
           settled();

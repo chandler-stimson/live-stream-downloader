@@ -169,7 +169,6 @@ chrome.runtime.sendMessage({
         method: 'get-extra',
         tabId
       }, resolve));
-      console.log(2, links);
 
       for (const url of links) {
         os.push({
@@ -247,17 +246,32 @@ const download = async (segments, file) => {
   };
   Object.assign(n.options, await storage.get({
     'threads': MyGet.OPTIONS.threads,
-    'error-recovery': MyGet.OPTIONS['error-recovery']
+    'error-recovery': MyGet.OPTIONS['error-recovery'],
+    'thread-timeout': MyGet.OPTIONS['thread-timeout']
   }));
 
   // instead of breaking, let the user retry
-  n.options['error-handler'] = (e, source) => {
+  n.options['error-handler'] = (e, source, segment) => {
     return self.prompt(`Connection to the server is broken (${source} -> ${e.message})!
 
-Press "Retry" to try one more time`);
+Use the box below to update the URL`, {
+      ok: 'Retry',
+      no: 'Cancel',
+      value: segment.uri
+    }, true).then(v => {
+      if (v) {
+        try {
+          new URL(v);
+          segment.uri = v;
+        }
+        catch (e) {
+          console.info('URL replacement ignored', e);
+        }
+      }
+    });
   };
 
-  console.log('MyGet', n);
+  console.info('MyGet Instance', n);
 
   const timer = setInterval(() => {
     // downloading a single file
@@ -403,8 +417,6 @@ const parser = async (manifest, file, href) => {
     else if (quality === 'lowest') {
       n = playlists.length - 1;
     }
-
-    console.log(n, quality);
 
     const v = playlists[Number(n)];
     if (v) {

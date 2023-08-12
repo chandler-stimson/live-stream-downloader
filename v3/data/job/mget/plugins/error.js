@@ -14,7 +14,7 @@
     along with this program.  If not, see {https://www.mozilla.org/en-US/MPL/}.
 
     GitHub: https://github.com/chandler-stimson/live-stream-downloader/
-    Homepage: https://add0n.com/hls-downloader.html
+    Homepage: https://webextension.org/listing/hls-downloader.html
 */
 
 /* global MyGet */
@@ -51,23 +51,35 @@ class EGet extends MyGet {
     this.errors.set(segment.uri, 0);
   }
   async pipe(...args) {
-    const [{uri}] = args;
+    const [segment] = args;
+    const {uri} = segment;
 
     for (;;) {
       try {
         const r = await super.pipe(...args);
+
+        // for complex ranges, we need to wait for all extra threads to finish
+        if (segment?.range?.complex) {
+          const check = () => {
+            if (segment.extraThreads.size) {
+              return Promise.allSettled(segment.extraThreads).then(check);
+            }
+            return r;
+          };
+          return check();
+        }
         return r;
       }
       catch (e) {
         const n = (this.errors.get(uri) ?? 0) + 1;
         this.errors.set(uri, n);
 
-        console.info('pipe is broken', n, e.message);
+        console.info('pipe is broken', 'retrying', n, 'message', e.message);
         if (this.controller.signal.aborted) {
           throw e;
         }
         if (n > this.options['error-tolerance']) {
-          await this.options['error-handler'](e, 'BROKEN_PIPE');
+          await this.options['error-handler'](e, 'BROKEN_PIPE', segment);
           this.errors.set(uri, 0);
         }
         else {

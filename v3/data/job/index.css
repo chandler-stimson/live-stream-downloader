@@ -227,6 +227,9 @@ body:not([data-mode=empty]) #intro {
   background: var(--bg-progress);
 }
 
+body[data-mode=download] {
+  grid-template-rows: min-content 1fr min-content min-content;
+}
 body:not([data-mode=download]) #progress {
   display: none;
 }

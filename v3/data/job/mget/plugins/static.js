@@ -14,7 +14,7 @@
     along with this program.  If not, see {https://www.mozilla.org/en-US/MPL/}.
 
     GitHub: https://github.com/chandler-stimson/live-stream-downloader/
-    Homepage: https://add0n.com/hls-downloader.html
+    Homepage: https://webextension.org/listing/hls-downloader.html
 */
 
 /* global MyGet */

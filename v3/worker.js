@@ -89,7 +89,7 @@ const badge = (n, tabId) => {
 
 const observe = d => {
   // hard-coded exception list
-  if (BLOCKED_LIST.some(s => d.url.indexOf(s) !== -1 && d.url.split(s)[0].split('/').length === 3)) {
+  if (BLOCKED_LIST.some(s => d.url.includes(s) && d.url.split(s)[0].split('/').length === 3)) {
     return console.warn('This request is not being processed');
   }
 
@@ -146,18 +146,20 @@ chrome.tabs.onUpdated.addListener((tabId, info) => {
   }
 });
 // find media
-chrome.webRequest.onHeadersReceived.addListener(observe, {
+chrome.webRequest.onHeadersReceived.addListener(d => observe(d), {
   urls: ['*://*/*'],
   types: ['media']
 }, ['responseHeaders']);
-chrome.webRequest.onHeadersReceived.addListener(observe, {
+chrome.webRequest.onHeadersReceived.addListener(d => observe(d), {
   urls: TYPES.map(s => '*://*/*.' + s + '*'),
   types: ['xmlhttprequest']
 }, ['responseHeaders']);
+console.log(1111);
+
 // https://iandevlin.com/html5/webvtt-example.html
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/track
 // https://demos.jwplayer.com/closed-captions/
-chrome.webRequest.onHeadersReceived.addListener(observe, {
+chrome.webRequest.onHeadersReceived.addListener(d => observe(d), {
   urls: TYPES.sub.map(s => '*://*/*.' + s + '*'),
   types: ['xmlhttprequest', 'other']
 }, ['responseHeaders']);
@@ -227,8 +229,10 @@ chrome.runtime.onMessage.addListener((request, sender, response) => {
       indexedDB.deleteDatabase(db.Name);
     }
   });
-  chrome.runtime.onInstalled.addListener(once);
-  chrome.runtime.onStartup.addListener(once);
+  if (indexedDB.databases) {
+    chrome.runtime.onInstalled.addListener(once);
+    chrome.runtime.onStartup.addListener(once);
+  }
 }
 
 /* FAQs & Feedback */

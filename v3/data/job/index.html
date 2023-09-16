@@ -1,5 +1,5 @@
-<html translate="no">
 <!DOCTYPE html>
+<html translate="no">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -62,8 +62,10 @@
 Acceptable Keywords: [meta.name] (default), [title], [hostname]">
           <label for="threads">Number of Threads (1-5)</label>
           <input type="number" min="1" max="5" value="3" id="threads" title="Download jobs with multiple threads to increase speed">
-          <label for="power">Keep Awake</label>
-          <input type="checkbox" id="power">
+          <div id="power-container">
+            <label for="power">Keep Awake</label>
+            <input type="checkbox" id="power">
+          </div>
           <label for="autoclose">Auto Close When Done</label>
           <input type="checkbox" id="autoclose">
           <label for="mime-watch">
@@ -105,6 +107,7 @@ Acceptable Keywords: [meta.name] (default), [title], [hostname]">
   <!-- M3U8 Parser -->
   <script type="text/javascript" src="m3u8-parser.js"></script>
   <!-- Page -->
+  <script type="text/javascript" src="file-picker-polyfill.js"></script>
   <script type="text/javascript" src="index.js"></script>
   <!-- Plugins -->
   <script type="text/javascript" src="plugins/unload.js"></script>

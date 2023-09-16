@@ -29,8 +29,15 @@
       targetUrlPatterns: ['*://*/*']
     });
   };
-  chrome.runtime.onInstalled.addListener(once);
-  chrome.runtime.onStartup.addListener(once);
+  if (/Firefox/.test(navigator.userAgent)) {
+    document.addEventListener('DOMContentLoaded', once, {
+      once: true
+    });
+  }
+  else {
+    chrome.runtime.onInstalled.addListener(once);
+    chrome.runtime.onStartup.addListener(once);
+  }
 }
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'clear') {

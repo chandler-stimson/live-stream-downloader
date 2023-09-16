@@ -309,6 +309,9 @@ Use the box below to update the URL`, {
     clearInterval(timer);
 
     document.title = 'Done. Media is ready!';
+    if ('download' in file) { // Firefox
+      file.download(file.name);
+    }
 
     // try to rename
     if (n.meta.name && n.meta.ext && file.move) {
@@ -488,10 +491,16 @@ const options = div => {
 document.getElementById('hrefs').onsubmit = async e => {
   e.preventDefault();
   const div = e.submitter.closest('label');
+  const button = div.querySelector('input[type="submit"]');
+
+  document.body.dataset.mode = 'prepare';
+
   try {
     div.dataset.active = true;
 
     const file = self.aFile || await window.showSaveFilePicker(options(div));
+    button.value = 'Processing...';
+
 
     // run pre
     for (const c of events.before) {
@@ -537,5 +546,6 @@ document.getElementById('hrefs').onsubmit = async e => {
     c(document.body.dataset.mode === 'done', 'aFile' in self ? self.aFile.stat.index === self.aFile.stat.total : true);
   }
 
+  button.value = 'Download';
   div.dataset.active = false;
 };

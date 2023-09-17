@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "version": "0.3.7",
+  "version": "0.3.8",
   "name": "Live Stream Downloader",
   "description": "__MSG_description__",
   "default_locale": "en",

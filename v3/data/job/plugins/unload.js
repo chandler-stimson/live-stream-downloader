@@ -8,7 +8,6 @@ events.before.add(() => {
 events.after.add(() => {
   window.onbeforeunload = null;
 });
-
 // auto close on success
 const done = (success, done) => {
   window.onbeforeunload = null;

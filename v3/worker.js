@@ -154,7 +154,6 @@ chrome.webRequest.onHeadersReceived.addListener(d => observe(d), {
   urls: TYPES.map(s => '*://*/*.' + s + '*'),
   types: ['xmlhttprequest']
 }, ['responseHeaders']);
-console.log(1111);
 
 // https://iandevlin.com/html5/webvtt-example.html
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/track

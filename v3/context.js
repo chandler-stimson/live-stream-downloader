@@ -25,8 +25,8 @@
     chrome.contextMenus.create({
       title: 'Clear Detected Media List',
       id: 'clear',
-      contexts: ['action', 'browser_action'],
-      targetUrlPatterns: ['*://*/*']
+      contexts: ['action'],
+      documentUrlPatterns: ['*://*/*']
     });
   };
   if (/Firefox/.test(navigator.userAgent)) {

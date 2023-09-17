@@ -26,7 +26,6 @@ const net = {
       'header': 'referer',
       'value': initiator
     }];
-
     await chrome.declarativeNetRequest.updateSessionRules({
       removeRuleIds: [cId],
       addRules: [{

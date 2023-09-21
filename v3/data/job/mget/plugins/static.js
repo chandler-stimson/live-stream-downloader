@@ -61,24 +61,43 @@ class SGet extends MyGet {
   /* guess filename and extension */
   static guess(resp, meta = {}) {
     const href = resp.url.split('#')[0].split('?')[0];
-    if (href.startsWith('data:')) {
-      const mime = href.split('data:')[1].split(';')[0];
-      meta.ext = (MIME_TYPES[mime] || mime.split('/')[1] || '').split(';')[0];
-      meta.name = 'unknown';
-      meta.mime = mime;
-    }
-    else {
-      const fe = (href.substring(href.lastIndexOf('/') + 1) || 'unknown').slice(-100);
 
-      // valid file extension "*.webvtt"
-      const e = /(.+)\.([^.]{1,6})*$/.exec(fe);
-
-      meta.name = e ? e[1] : fe;
-      meta.mime = resp.headers.get('Content-Type') || '';
-      meta.ext = e ? e[2] : (MIME_TYPES[meta.mime] || meta.mime.split('/')[1] || '').split(';')[0];
+    const disposition = resp.headers.get('Content-Disposition');
+    let name = '';
+    if (disposition) {
+      const tmp = /filename\*=UTF-8''([^;]*)/.exec(disposition);
+      if (tmp && tmp.length) {
+        name = tmp[1].replace(/["']$/, '').replace(/^["']/, '');
+        name = decodeURIComponent(name);
+      }
     }
+    if (!name && disposition) {
+      const tmp = /filename=([^;]*)/.exec(disposition);
+      if (tmp && tmp.length) {
+        name = tmp[1].replace(/["']$/, '').replace(/^["']/, '');
+      }
+    }
+    if (!name) {
+      if (href.startsWith('data:')) {
+        const mime = href.split('data:')[1].split(';')[0];
+        meta.ext = (MIME_TYPES[mime] || mime.split('/')[1] || '').split(';')[0];
+        name = '';
+        meta.mime = mime;
+      }
+      else {
+        const fe = (href.substring(href.lastIndexOf('/') + 1) || 'unknown').slice(-100);
+        name = fe;
+      }
+    }
+    name = name || 'unknown';
+    // valid file extension "*.webvtt"
+    const e = /(.+)\.([^.]{1,6})*$/.exec(name);
+
+    name = e ? e[1] : name;
+    meta.mime = resp.headers.get('Content-Type') || '';
+    meta.ext = e ? e[2] : (MIME_TYPES[meta.mime] || meta.mime.split('/')[1] || '').split(';')[0];
     //
-    meta.name = decodeURIComponent(meta.name);
+    meta.name = decodeURIComponent(name) || meta.name;
   }
   static size(bytes, si = false, dp = 1) {
     bytes = Number(bytes);

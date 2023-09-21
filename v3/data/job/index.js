@@ -119,12 +119,16 @@ const build = async os => {
     const clone = document.importNode(t.content, true);
     const div = clone.querySelector('label');
     const en = clone.querySelector('[data-id=name]');
+    const ex = clone.querySelector('[data-id=ext]');
     const meta = {};
 
-    const name = () => meta.gname = en.textContent = en.title = prefs.filename
-      .replace('[meta.name]', meta.name)
-      .replace('[title]', args.get('title'))
-      .replace('[hostname]', hostname);
+    const name = () => {
+      meta.gname = en.textContent = en.title = prefs.filename
+        .replace('[meta.name]', meta.name)
+        .replace('[title]', args.get('title'))
+        .replace('[hostname]', hostname);
+      ex.textContent = meta.ext || 'N/A';
+    };
 
     // offline naming
     const r = response(o instanceof File ? {
@@ -149,7 +153,6 @@ const build = async os => {
       }).catch(() => {});
     }
 
-    clone.querySelector('[data-id=ext]').textContent = meta.ext || 'N/A';
     if (r.headers.has('Content-Length')) {
       clone.querySelector('[data-id=size]').textContent = MyGet.size(r.headers.get('Content-Length') || '0');
     }

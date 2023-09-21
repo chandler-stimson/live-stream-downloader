@@ -11,23 +11,23 @@
         ...TYPES,
         ...TYPES.extra
       ].map(s => '*://*/*.' + s + '*')
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Download with Live Stream Downloader',
       id: 'download-media',
       contexts: ['audio', 'video']
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Extract Links',
       id: 'extract-links',
       contexts: ['selection']
-    });
+    }, () => chrome.runtime.lastError);
     chrome.contextMenus.create({
       title: 'Clear Detected Media List',
       id: 'clear',
       contexts: ['action'],
       documentUrlPatterns: ['*://*/*']
-    });
+    }, () => chrome.runtime.lastError);
   };
   if (/Firefox/.test(navigator.userAgent)) {
     document.addEventListener('DOMContentLoaded', once, {
@@ -45,9 +45,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     chrome.action.setIcon({
       tabId: tab.id,
       path: {
-        '16': 'data/icons/16.png',
-        '32': 'data/icons/32.png',
-        '48': 'data/icons/48.png'
+        '16': '/data/icons/16.png',
+        '32': '/data/icons/32.png',
+        '48': '/data/icons/48.png'
       }
     });
     chrome.action.setBadgeText({

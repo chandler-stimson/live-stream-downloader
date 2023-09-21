@@ -77,6 +77,8 @@ class SGet extends MyGet {
       meta.mime = resp.headers.get('Content-Type') || '';
       meta.ext = e ? e[2] : (MIME_TYPES[meta.mime] || meta.mime.split('/')[1] || '').split(';')[0];
     }
+    //
+    meta.name = decodeURIComponent(meta.name);
   }
   static size(bytes, si = false, dp = 1) {
     bytes = Number(bytes);

@@ -118,17 +118,37 @@ const build = async os => {
   for (const o of os) {
     const clone = document.importNode(t.content, true);
     const div = clone.querySelector('label');
+    const en = clone.querySelector('[data-id=name]');
     const meta = {};
 
+    const name = () => meta.gname = en.textContent = en.title = prefs.filename
+      .replace('[meta.name]', meta.name)
+      .replace('[title]', args.get('title'))
+      .replace('[hostname]', hostname);
+
+    // offline naming
     const r = response(o instanceof File ? {
       url: 'local/' + o.name
     } : o);
     MyGet.guess(r, meta);
+    name();
+    // optional online naming
+    if (r.url.startsWith('http')) {
+      const controller = new AbortController();
+      const signal = controller.signal;
 
-    meta.gname = clone.querySelector('[data-id=name]').textContent = clone.querySelector('[data-id=name]').title = prefs.filename
-      .replace('[meta.name]', meta.name)
-      .replace('[title]', args.get('title'))
-      .replace('[hostname]', hostname);
+      fetch(r.url, {
+        method: 'GET',
+        signal
+      }).then(r => {
+        if (r.ok) {
+          MyGet.guess(r, meta);
+          name();
+        }
+        controller.abort();
+      }).catch(() => {});
+    }
+
     clone.querySelector('[data-id=ext]').textContent = meta.ext || 'N/A';
     if (r.headers.has('Content-Length')) {
       clone.querySelector('[data-id=size]').textContent = MyGet.size(r.headers.get('Content-Length') || '0');

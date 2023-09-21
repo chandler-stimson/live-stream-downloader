@@ -197,6 +197,13 @@ class MGet {
   }
   /* returns the native fetch */
   native(request, params, save = false) {
+    // some servers have no ratelimit on partial requests
+    if (request.method === 'GET' && request.headers.has('range') === false) {
+      const r = request.clone();
+      r.headers.set('range', 'bytes=0-');
+      return fetch(r, params);
+    }
+
     return fetch(request, params);
   }
   /*

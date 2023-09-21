@@ -137,7 +137,7 @@ const build = async os => {
     MyGet.guess(r, meta);
     name();
     // optional online naming
-    if (r.url.startsWith('http')) {
+    if (r.url.startsWith('http') && document.getElementById('online-resolve-name').checked) {
       const controller = new AbortController();
       const signal = controller.signal;
 

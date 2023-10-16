@@ -1,7 +1,11 @@
 // the headers that need to be recorded
 const HEADERS = ['content-length', 'accept-ranges', 'content-type', 'content-disposition'];
 // do not allow downloading from these resources
-const BLOCKED_LIST = ['.globo.com', '.gstatic.com', '.playm4u', '.youtube.com'];
+const BLOCKED_LIST = [
+  '.gstatic.com', '.youtube.com',
+  '.globo.com', '.playm4u',
+  '.darkfilms.top' // #44
+];
 // supported types
 const TYPES = [
   'flv', 'avi', 'wmv', 'mov', 'mp4', 'webm', 'mkv', // video

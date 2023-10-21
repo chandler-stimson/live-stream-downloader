@@ -1,24 +1,6 @@
-// the headers that need to be recorded
-const HEADERS = ['content-length', 'accept-ranges', 'content-type', 'content-disposition'];
-// do not allow downloading from these resources
-const BLOCKED_LIST = [
-  '.gstatic.com', '.youtube.com',
-  '.globo.com', '.playm4u',
-  '.darkfilms.top' // #44
-];
-// supported types
-const TYPES = [
-  'flv', 'avi', 'wmv', 'mov', 'mp4', 'webm', 'mkv', // video
-  'pcm', 'wav', 'mp3', 'aac', 'ogg', 'wma', // audio
-  'm3u8' // stream
-];
-TYPES.extra = [
-  'zip', 'rar', '7z', 'tar.gz',
-  'img', 'iso', 'bin',
-  'exe', 'dmg', 'deb'
-];
-TYPES.sub = ['vtt', 'webvtt', 'srt'];
+/* global network */
 
+self.importScripts('network/core.js');
 self.importScripts('context.js');
 
 /* extra objects */
@@ -91,9 +73,11 @@ const badge = (n, tabId) => {
   }
 };
 
-const observe = d => {
+const observe = (d, blocked = () => false) => {
   // hard-coded exception list
-  if (BLOCKED_LIST.some(s => d.url.includes(s) && d.url.split(s)[0].split('/').length === 3)) {
+  console.log(blocked);
+
+  if (blocked(d)) {
     return console.warn('This request is not being processed');
   }
 
@@ -114,7 +98,7 @@ const observe = d => {
         url: d.url,
         initiator: d.initiator,
         timeStamp: d.timeStamp,
-        responseHeaders: d.responseHeaders.filter(o => HEADERS.indexOf(o.name.toLowerCase()) !== -1)
+        responseHeaders: d.responseHeaders.filter(o => network.HEADERS.includes(o.name.toLowerCase()))
       });
       prefs[d.tabId] = prefs[d.tabId].slice(-200);
       chrome.storage.session.set(prefs);
@@ -150,22 +134,30 @@ chrome.tabs.onUpdated.addListener((tabId, info) => {
   }
 });
 // find media
-chrome.webRequest.onHeadersReceived.addListener(d => observe(d), {
+network.blocked().then(blocked => chrome.webRequest.onHeadersReceived.addListener(d => observe(d, blocked), {
   urls: ['*://*/*'],
   types: ['media']
-}, ['responseHeaders']);
-chrome.webRequest.onHeadersReceived.addListener(d => observe(d), {
-  urls: TYPES.map(s => '*://*/*.' + s + '*'),
+}, ['responseHeaders']));
+
+network.types({
+  core: true
+}).then(types => chrome.webRequest.onHeadersReceived.addListener(d => observe(d), {
+  urls: types.map(s => '*://*/*.' + s + '*'),
   types: ['xmlhttprequest']
-}, ['responseHeaders']);
+}, ['responseHeaders']));
 
 // https://iandevlin.com/html5/webvtt-example.html
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/track
 // https://demos.jwplayer.com/closed-captions/
-chrome.webRequest.onHeadersReceived.addListener(d => observe(d), {
-  urls: TYPES.sub.map(s => '*://*/*.' + s + '*'),
+
+network.types({
+  core: false,
+  sub: true
+}).then(types => chrome.webRequest.onHeadersReceived.addListener(d => observe(d), {
+  urls: types.map(s => '*://*/*.' + s + '*'),
   types: ['xmlhttprequest', 'other']
-}, ['responseHeaders']);
+}, ['responseHeaders']));
+
 // watch for video and audio mime-types
 {
   const run = () => chrome.storage.local.get({

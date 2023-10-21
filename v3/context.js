@@ -1,33 +1,30 @@
-/* global TYPES, extra */
+/* global extra, network */
 
 /* context menu */
 {
   const once = () => {
-    chrome.contextMenus.create({
+    network.types({core: true, extra: true}).then(types => chrome.contextMenus.create({
       title: 'Download with Live Stream Downloader',
       id: 'download-link',
       contexts: ['link'],
-      targetUrlPatterns: [
-        ...TYPES,
-        ...TYPES.extra
-      ].map(s => '*://*/*.' + s + '*')
-    }, () => chrome.runtime.lastError);
+      targetUrlPatterns: types.map(s => '*://*/*.' + s + '*')
+    }));
     chrome.contextMenus.create({
       title: 'Download with Live Stream Downloader',
       id: 'download-media',
       contexts: ['audio', 'video']
-    }, () => chrome.runtime.lastError);
+    });
     chrome.contextMenus.create({
       title: 'Extract Links',
       id: 'extract-links',
       contexts: ['selection']
-    }, () => chrome.runtime.lastError);
+    });
     chrome.contextMenus.create({
       title: 'Clear Detected Media List',
       id: 'clear',
       contexts: ['action'],
       documentUrlPatterns: ['*://*/*']
-    }, () => chrome.runtime.lastError);
+    });
   };
   if (/Firefox/.test(navigator.userAgent)) {
     document.addEventListener('DOMContentLoaded', once, {
@@ -36,7 +33,6 @@
   }
   else {
     chrome.runtime.onInstalled.addListener(once);
-    chrome.runtime.onStartup.addListener(once);
   }
 }
 chrome.contextMenus.onClicked.addListener((info, tab) => {

@@ -1,0 +1,17 @@
+[{
+  "type": "host",
+  "value": ".gstatic.com"
+}, {
+  "type": "host",
+  "value": ".youtube.com"
+}, {
+  "type": "host",
+  "value": ".globo.com"
+}, {
+  "type": "host",
+  "value": ".playm4u"
+}, {
+  "type": "host",
+  "value": ".darkfilms.top",
+  "description": "#44"
+}]

@@ -8,7 +8,8 @@
     "storage",
     "contextMenus",
     "webRequest",
-    "declarativeNetRequestWithHostAccess"
+    "declarativeNetRequestWithHostAccess",
+    "alarms"
   ],
   "optional_permissions": [
     "power",

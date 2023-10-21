@@ -73,10 +73,12 @@ const badge = (n, tabId) => {
   }
 };
 
-const observe = d => {
+const observe = async d => {
   // match with the exception list
-  if (observe.blocked(d)) {
-    return console.warn('This request is not being processed');
+  const blocked = await network.blocked(d);
+  if (blocked(d)) {
+    console.warn('[ignoring]', d.url);
+    return;
   }
 
   // unsupported content types
@@ -86,26 +88,32 @@ const observe = d => {
     return;
   }
 
-  chrome.storage.session.get({
-    [d.tabId]: []
-  }, prefs => {
-    const hrefs = prefs[d.tabId].map(o => o.url);
+  chrome.scripting.executeScript({
+    target: {
+      tabId: d.tabId
+    },
+    func: (size, v) => {
+      self.storage = self.storage || new Map();
+      self.storage.set(v.url, v);
+      if (self.storage.size > size) {
+        for (const [href] of self.storage) {
+          self.storage.delete(href);
+          if (self.storage.size <= size) {
+            break;
+          }
+        }
+      }
 
-    if (hrefs.includes(d.url) === false) {
-      prefs[d.tabId].push({
-        url: d.url,
-        initiator: d.initiator,
-        timeStamp: d.timeStamp,
-        responseHeaders: d.responseHeaders.filter(o => network.HEADERS.includes(o.name.toLowerCase()))
-      });
-      prefs[d.tabId] = prefs[d.tabId].slice(-200);
-      chrome.storage.session.set(prefs);
-      badge(prefs[d.tabId].length, d.tabId);
-    }
-  });
+      return self.storage.size;
+    },
+    args: [200, {
+      url: d.url,
+      initiator: d.initiator,
+      timeStamp: d.timeStamp,
+      responseHeaders: d.responseHeaders.filter(o => network.HEADERS.includes(o.name.toLowerCase()))
+    }]
+  }).then(c => badge(c[0].result, d.tabId)).catch(() => {});
 };
-observe.blocked = () => false;
-
 observe.mime = d => {
   for (const {name, value} of d.responseHeaders) {
     if (name === 'content-type' && value && (
@@ -118,8 +126,6 @@ observe.mime = d => {
 
 /* clear old list on remove */
 chrome.tabs.onRemoved.addListener(tabId => {
-  // remove jobs
-  chrome.storage.session.remove(tabId + '');
   // clear rules
   chrome.declarativeNetRequest.updateSessionRules({
     removeRuleIds: [tabId]
@@ -127,21 +133,19 @@ chrome.tabs.onRemoved.addListener(tabId => {
 });
 
 /* clear old list on reload */
-chrome.tabs.onUpdated.addListener((tabId, info) => {
-  if (info.status === 'loading') {
-    chrome.storage.session.remove(tabId + '');
-    badge(0, tabId);
-  }
-});
-// find media
-network.blocked().then(blocked => {
-  observe.blocked = blocked;
-  chrome.webRequest.onHeadersReceived.addListener(observe, {
-    urls: ['*://*/*'],
-    types: ['media']
-  }, ['responseHeaders']);
-});
+// chrome.tabs.onUpdated.addListener((tabId, info) => {
+//   if (info.status === 'loading') {
+//     badge(0, tabId);
+//   }
+// });
 
+// media
+chrome.webRequest.onHeadersReceived.addListener(observe, {
+  urls: ['*://*/*'],
+  types: ['media']
+}, ['responseHeaders']);
+
+// media types
 network.types({
   core: true
 }).then(types => {
@@ -156,7 +160,6 @@ network.types({
 // https://iandevlin.com/html5/webvtt-example.html
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/track
 // https://demos.jwplayer.com/closed-captions/
-
 network.types({
   core: false,
   sub: true
@@ -189,16 +192,7 @@ network.types({
 }
 
 chrome.runtime.onMessage.addListener((request, sender, response) => {
-  if (request.method === 'get-jobs') {
-    chrome.storage.session.get({
-      [request.tabId]: []
-    }, prefs => {
-      response(prefs[request.tabId]);
-    });
-
-    return true;
-  }
-  else if (request.method === 'release-awake-if-possible') {
+  if (request.method === 'release-awake-if-possible') {
     if (chrome.power) {
       chrome.runtime.sendMessage({
         method: 'any-active'

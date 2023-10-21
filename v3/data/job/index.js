@@ -177,15 +177,23 @@ const build = async os => {
   document.body.dataset.mode = document.querySelector('form .entry') ? 'ready' : 'empty';
 };
 
-chrome.runtime.sendMessage({
-  method: 'get-jobs',
-  tabId
-}, async os => {
-  if (args.has('append')) {
-    os.push({
-      url: args.get('append')
-    });
-  }
+chrome.scripting.executeScript({
+  target: {
+    tabId
+  },
+  func: url => {
+    self.storage = self.storage || new Map();
+
+    if (url && self.storage.has(url) === false) {
+      self.storage.set(url, {
+        url
+      });
+    }
+
+    return [...self.storage.values()];
+  },
+  args: [args.get('append')]
+}).then(a => a[0].result).catch(() => []).then(async os => {
   if (args.get('extra') === 'true') {
     try {
       const links = await new Promise(resolve => chrome.runtime.sendMessage({

@@ -34,20 +34,24 @@ const network = {
 }
 
 // do not allow downloading from blocked resources
-network.blocked = () => caches.open(network.NAME).then(async cache => {
-  const r = await cache.match(network.LIST);
-  if (r) {
-    return r;
-  }
-  return fetch('/network/blocked.json');
-}).then(r => r.json()).then(a => {
-  const list = a.map(o => o.value);
+{
+  network.blocked = () => caches.open(network.NAME).then(async cache => {
+    const r = await cache.match(network.LIST);
+    if (r) {
+      return r;
+    }
+    return fetch('/network/blocked.json');
+  }).then(r => r.json()).then(a => {
+    // Currently only supports "host" type
+    const list = a.filter(o => o.type === 'host').map(o => o.value);
 
-  // currently only supports type=host
-  return d => {
-    return list.some(s => d.url.includes(s) && d.url.split(s)[0].split('/').length === 3);
-  };
-});
+    const cached = d => {
+      return list.some(s => d.url.includes(s) && d.url.split(s)[0].split('/').length === 3);
+    };
+    network.blocked = () => Promise.resolve(cached);
+    return cached;
+  });
+}
 
 // update network blocked list
 {
@@ -57,6 +61,7 @@ network.blocked = () => caches.open(network.NAME).then(async cache => {
     if (a.name === 'update-network') {
       fetch(network.LIST).then(r => {
         if (r.ok) {
+          console.info('Blocked list got updated');
           caches.open(network.NAME).then(cache => cache.put(network.LIST, r));
         }
       });

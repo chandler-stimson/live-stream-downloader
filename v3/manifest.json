@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "version": "0.3.9",
+  "version": "0.4.0",
   "name": "Live Stream Downloader",
   "description": "__MSG_description__",
   "default_locale": "en",
@@ -9,11 +9,11 @@
     "contextMenus",
     "webRequest",
     "declarativeNetRequestWithHostAccess",
+    "scripting",
     "alarms"
   ],
   "optional_permissions": [
-    "power",
-    "scripting"
+    "power"
   ],
   "host_permissions": [
     "*://*/*.flv*",

@@ -64,52 +64,58 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     }]);
   }
   else if (info.menuItemId === 'extract-links') {
-    chrome.permissions.request({
-      permissions: ['scripting']
-    }, granted => {
-      if (granted) {
-        chrome.scripting.executeScript({
-          target: {
-            tabId: tab.id
-          },
-          injectImmediately: true,
-          func: () => {
-            const div = document.createElement('div');
-            const rLinks = [];
-            const selection = window.getSelection();
-            for (let i = 0; i < selection.rangeCount; i++) {
-              const range = selection.getRangeAt(i);
-              const f = range.cloneContents();
-              div.appendChild(f);
+    const next = () => chrome.scripting.executeScript({
+      target: {
+        tabId: tab.id
+      },
+      injectImmediately: true,
+      func: () => {
+        const div = document.createElement('div');
+        const rLinks = [];
+        const selection = window.getSelection();
+        for (let i = 0; i < selection.rangeCount; i++) {
+          const range = selection.getRangeAt(i);
+          const f = range.cloneContents();
+          div.appendChild(f);
 
-              const n = range.commonAncestorContainer;
-              if (n.nodeType === Node.ELEMENT_NODE) {
-                rLinks.push(n.href);
-              }
-              else {
-                rLinks.push(n.parentNode.href);
-              }
-            }
-            const links = [...rLinks, ...[...div.querySelectorAll('a')].map(a => a.href)];
-
-            const re = /(\b(https?|file):\/\/[-A-Z0-9+&@#\\/%?=~_|!:,.;]*[-A-Z0-9+&@#\\/%=~_|])/gi;
-            links.push(
-              ...(selection.toString().match(re) || []) .map(s => s.replace(/&amp;/g, '&'))
-            );
-
-            return links.filter(href => href).filter((s, i, l) => s && l.indexOf(s) === i);
+          const n = range.commonAncestorContainer;
+          if (n.nodeType === Node.ELEMENT_NODE) {
+            rLinks.push(n.href);
           }
-        }).then(a => {
-          const links = a.map(o => o.result || []).flat();
+          else {
+            rLinks.push(n.parentNode.href);
+          }
+        }
+        const links = [...rLinks, ...[...div.querySelectorAll('a')].map(a => a.href)];
 
-          extra[tab.id] = links;
+        const re = /(\b(https?|file):\/\/[-A-Z0-9+&@#\\/%?=~_|!:,.;]*[-A-Z0-9+&@#\\/%=~_|])/gi;
+        links.push(
+          ...(selection.toString().match(re) || []) .map(s => s.replace(/&amp;/g, '&'))
+        );
 
-          open(tab, [{
-            key: 'extra',
-            value: true
-          }]);
-        });
+        return links.filter(href => href).filter((s, i, l) => s && l.indexOf(s) === i);
       }
+    }).then(a => {
+      const links = a.map(o => o.result || []).flat();
+
+      extra[tab.id] = links;
+
+      open(tab, [{
+        key: 'extra',
+        value: true
+      }]);
     });
+    if (navigator.userAgent.includes('Firefox')) {
+      next();
+    }
+    else {
+      chrome.permissions.request({
+        permissions: ['scripting']
+      }, granted => {
+        if (granted) {
+          next();
+        }
+      });
+    }
   }
 });

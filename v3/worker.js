@@ -73,11 +73,9 @@ const badge = (n, tabId) => {
   }
 };
 
-const observe = (d, blocked = () => false) => {
-  // hard-coded exception list
-  console.log(blocked);
-
-  if (blocked(d)) {
+const observe = d => {
+  // match with the exception list
+  if (observe.blocked(d)) {
     return console.warn('This request is not being processed');
   }
 
@@ -106,6 +104,8 @@ const observe = (d, blocked = () => false) => {
     }
   });
 };
+observe.blocked = () => false;
+
 observe.mime = d => {
   for (const {name, value} of d.responseHeaders) {
     if (name === 'content-type' && value && (
@@ -134,17 +134,24 @@ chrome.tabs.onUpdated.addListener((tabId, info) => {
   }
 });
 // find media
-network.blocked().then(blocked => chrome.webRequest.onHeadersReceived.addListener(d => observe(d, blocked), {
-  urls: ['*://*/*'],
-  types: ['media']
-}, ['responseHeaders']));
+network.blocked().then(blocked => {
+  observe.blocked = blocked;
+  chrome.webRequest.onHeadersReceived.addListener(observe, {
+    urls: ['*://*/*'],
+    types: ['media']
+  }, ['responseHeaders']);
+});
 
 network.types({
   core: true
-}).then(types => chrome.webRequest.onHeadersReceived.addListener(d => observe(d), {
-  urls: types.map(s => '*://*/*.' + s + '*'),
-  types: ['xmlhttprequest']
-}, ['responseHeaders']));
+}).then(types => {
+  const cloned = navigator.userAgent.includes('Firefox') ? d => observe(d) : observe;
+
+  chrome.webRequest.onHeadersReceived.addListener(cloned, {
+    urls: types.map(s => '*://*/*.' + s + '*'),
+    types: ['xmlhttprequest']
+  }, ['responseHeaders']);
+});
 
 // https://iandevlin.com/html5/webvtt-example.html
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/track
@@ -153,10 +160,14 @@ network.types({
 network.types({
   core: false,
   sub: true
-}).then(types => chrome.webRequest.onHeadersReceived.addListener(d => observe(d), {
-  urls: types.map(s => '*://*/*.' + s + '*'),
-  types: ['xmlhttprequest', 'other']
-}, ['responseHeaders']));
+}).then(types => {
+  const cloned = navigator.userAgent.includes('Firefox') ? d => observe(d) : observe;
+
+  chrome.webRequest.onHeadersReceived.addListener(cloned, {
+    urls: types.map(s => '*://*/*.' + s + '*'),
+    types: ['xmlhttprequest', 'other']
+  }, ['responseHeaders']);
+});
 
 // watch for video and audio mime-types
 {
@@ -209,11 +220,11 @@ chrome.runtime.onMessage.addListener((request, sender, response) => {
 {
   const once = async () => {
     for (const key of await caches.keys()) {
-      await caches.delete(key);
+      if (key !== network.NAME) {
+        caches.delete(key);
+      }
     }
   };
-
-  chrome.runtime.onInstalled.addListener(once);
   chrome.runtime.onStartup.addListener(once);
 }
 

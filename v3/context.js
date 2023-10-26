@@ -37,7 +37,17 @@
 }
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'clear') {
-    chrome.storage.session.remove(tab.id + '');
+    chrome.scripting.executeScript({
+      target: {
+        tabId: tab.id
+      },
+      func: () => {
+        if (self.storage) {
+          self.storage.clear();
+        }
+      }
+    }).catch(() => {});
+
     chrome.action.setIcon({
       tabId: tab.id,
       path: {

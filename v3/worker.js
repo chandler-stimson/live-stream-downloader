@@ -2,6 +2,7 @@
 
 self.importScripts('network/core.js');
 self.importScripts('context.js');
+self.importScripts('/plugins/blob-detector/core.js');
 
 /* extra objects */
 const extra = {};
@@ -207,6 +208,14 @@ chrome.runtime.onMessage.addListener((request, sender, response) => {
   else if (request.method === 'get-extra') {
     response(extra[request.tabId] || []);
     delete extra[request.tabId];
+  }
+  else if (request.method === 'media-detected') {
+    observe({
+      ...request.d,
+      timeStamp: Date.now(),
+      tabId: sender.tab.id,
+      initiator: sender.url
+    });
   }
 });
 

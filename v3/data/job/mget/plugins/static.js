@@ -34,6 +34,7 @@ const MIME_TYPES = {
   'application/postscript': 'ps',
   'application/vnd.ms-excel': 'xls',
   'application/vnd.ms-powerpoint': 'ppt',
+  'application/vnd.apple.mpegurl': 'm3u8',
   'application/x-7z-compressed': '7z',
   'application/x-rar-compressed': 'rar',
   'application/x-shockwave-flash': 'swf',
@@ -96,8 +97,11 @@ class SGet extends MyGet {
     name = e ? e[1] : name;
     meta.mime = resp.headers.get('Content-Type') || '';
     meta.ext = e ? e[2] : (MIME_TYPES[meta.mime] || meta.mime.split('/')[1] || '').split(';')[0];
+    meta.ext = meta.ext.slice(0, 15); // cannot be longer than 16 characters.
     //
     meta.name = decodeURIComponent(name) || meta.name;
+
+    console.log(meta);
   }
   static size(bytes, si = false, dp = 1) {
     bytes = Number(bytes);

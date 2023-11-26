@@ -100,8 +100,6 @@ class SGet extends MyGet {
     meta.ext = meta.ext.slice(0, 15); // cannot be longer than 16 characters.
     //
     meta.name = decodeURIComponent(name) || meta.name;
-
-    console.log(meta);
   }
   static size(bytes, si = false, dp = 1) {
     bytes = Number(bytes);

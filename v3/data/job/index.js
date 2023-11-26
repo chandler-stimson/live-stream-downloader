@@ -529,7 +529,23 @@ document.getElementById('hrefs').onsubmit = async e => {
   try {
     div.dataset.active = true;
 
-    const file = self.aFile || await window.showSaveFilePicker(options(div));
+    const opts = options(div);
+    const file = self.aFile || await window.showSaveFilePicker(opts).catch(e => {
+      console.error(e);
+      // the explorer rejects the suggested name
+      // opts.types[0].accept = {'dd/vv': ['.longextensionfile']};
+      if (e instanceof TypeError) {
+        return window.showSaveFilePicker({
+          types: [{
+            accept: {
+              'video/mkv': ['.mkv']
+            },
+            description: 'Video or Audio Files'
+          }]
+        });
+      }
+      throw e;
+    });
     button.value = 'Processing...';
 
 

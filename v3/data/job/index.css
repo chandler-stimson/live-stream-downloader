@@ -1,4 +1,7 @@
 :root {
+  --fg-blue: #1a0dab;
+  --fg-brown: #a52a2a;
+  --fg-green: #00915c;
   --bg-light-dark: rgba(0, 0, 0, 0.05);
   --bg-dark: #4d5155;
   --bg-light: #fff;
@@ -195,8 +198,8 @@ body:not([data-mode=empty]) #intro {
 }
 #hrefs {
   display: grid;
-  grid-template-columns: min-content minmax(auto, 120px) repeat(2, min-content) 1fr repeat(3, min-content);
-  grid-gap: 10px 0;
+  grid-template-columns: min-content min-content min-content repeat(2, min-content) 1fr repeat(3, min-content);
+  grid-gap: 2px 10px;
   align-items: center;
   overflow: hidden;
 }
@@ -206,16 +209,31 @@ body:not([data-mode=empty]) #intro {
   align-items: center;
   text-overflow: ellipsis;
 }
-#hrefs span {
-  padding: 8px;
-}
 
 #hrefs .entry:nth-child(2n) [data-id="href"] {
   background-color: var(--bg-light-dark);
 }
-
-#hrefs input[type=button] {
-  margin-right: 2px;
+#hrefs span[data-id=extracted-name] {
+  font-style: italic;
+}
+#hrefs span[data-id=extracted-name],
+#hrefs span[data-id=name] {
+  max-width: 20ch;
+}
+#hrefs span[data-id=size] {
+  color: var(--fg-blue);
+  justify-self: center;
+}
+#hrefs span[data-id=href] {
+  padding: 10px;
+  color: var(--fg-brown);
+}
+#hrefs span[data-id=ext] {
+  color: var(--fg-green);
+  justify-self: center;
+}
+#hrefs input[type=button]:not(:last-child) {
+  margin-right: -8px;
 }
 
 #progress {

@@ -101,7 +101,7 @@ class SGet extends MyGet {
     //
     meta.name = decodeURIComponent(name) || meta.name;
   }
-  static size(bytes, si = false, dp = 1) {
+  static size(bytes, si = true, dp = 1) {
     bytes = Number(bytes);
     const thresh = si ? 1000 : 1024;
 
@@ -110,7 +110,7 @@ class SGet extends MyGet {
     }
 
     const units = si ?
-      ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'] :
+      ['KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'] :
       ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
     let u = -1;
     const r = 10 ** dp;

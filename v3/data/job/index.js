@@ -119,6 +119,7 @@ const build = async os => {
     const clone = document.importNode(t.content, true);
     const div = clone.querySelector('label');
     const en = clone.querySelector('[data-id=name]');
+    const exn = clone.querySelector('[data-id=extracted-name]');
     const ex = clone.querySelector('[data-id=ext]');
     const meta = {};
 
@@ -127,6 +128,11 @@ const build = async os => {
         .replace('[meta.name]', meta.name)
         .replace('[title]', args.get('title'))
         .replace('[hostname]', hostname);
+
+      if (prefs.filename.includes('[meta.name]') === false) {
+        exn.textContent = exn.title = '(' + meta.name + ')';
+      }
+
       ex.textContent = meta.ext || 'N/A';
     };
 
@@ -157,7 +163,7 @@ const build = async os => {
       clone.querySelector('[data-id=size]').textContent = MyGet.size(r.headers.get('Content-Length') || '0');
     }
     else {
-      clone.querySelector('[data-id=size]').textContent = 'N/A';
+      clone.querySelector('[data-id=size]').textContent = '-';
     }
     clone.querySelector('[data-id=href]').textContent = clone.querySelector('[data-id=href]').title = (o.url || 'N/A');
 

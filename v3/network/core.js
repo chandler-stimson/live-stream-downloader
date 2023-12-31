@@ -36,10 +36,10 @@ const network = {
 // do not allow downloading from blocked resources
 {
   network.blocked = () => caches.open(network.NAME).then(async cache => {
-    const r = await cache.match(network.LIST);
-    if (r) {
-      return r;
-    }
+    // const r = await cache.match(network.LIST);
+    // if (r) {
+    //   return r;
+    // }
     return fetch('/network/blocked.json');
   }).then(r => r.json()).then(a => {
     // Currently only supports "host" type

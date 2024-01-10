@@ -18,4 +18,10 @@
   "type": "host",
   "value": ".darkfilms.cc",
   "description": "#44"
+}, {
+  "type": "host",
+  "value": ".ch3plus.com"
+}, {
+  "type": "host",
+  "value": ".byteark.com"
 }]

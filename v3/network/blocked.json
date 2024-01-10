@@ -20,8 +20,10 @@
   "description": "#44"
 }, {
   "type": "host",
-  "value": ".ch3plus.com"
+  "value": ".ch3plus.com",
+  "description": "#48"
 }, {
   "type": "host",
-  "value": ".byteark.com"
+  "value": ".byteark.com",
+  "description": "#48"
 }]

@@ -9,6 +9,7 @@
     "contextMenus",
     "webRequest",
     "declarativeNetRequestWithHostAccess",
+    "declarativeContent",
     "scripting",
     "alarms"
   ],

@@ -10,12 +10,15 @@ catch (e) {
 }
 
 port.addEventListener('media-detected', e => {
-  const {url, type} = e.detail;
+  const {content, type} = e.detail;
+
+  console.log(e.detail);
+
   chrome.runtime.sendMessage({
     method: 'media-detected',
     context: 'blob-detector-plugin',
     d: {
-      url,
+      url: 'data:' + type + ';base64,' + btoa(content),
       responseHeaders: [{
         name: 'content-type',
         value: type

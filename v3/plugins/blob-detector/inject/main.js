@@ -16,16 +16,19 @@
     constructor(...args) {
       super(...args);
 
-      const type = args[1]?.type;
-      if (type === 'application/vnd.apple.mpegurl') {
-        const reader = new FileReader();
-        reader.onload = () => port.dispatchEvent(new CustomEvent('media-detected', {
-          detail: {
-            url: reader.result,
-            type
-          }
-        }));
-        reader.readAsDataURL(this);
+      try {
+        const type = args[1]?.type;
+        if (type === 'application/vnd.apple.mpegurl') {
+          port.dispatchEvent(new CustomEvent('media-detected', {
+            detail: {
+              type,
+              content: args[0].join('')
+            }
+          }));
+        }
+      }
+      catch (e) {
+        console.info('cannot extract M3U8 content', e);
       }
     }
   }

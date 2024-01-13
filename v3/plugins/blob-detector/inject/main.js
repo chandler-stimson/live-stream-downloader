@@ -10,9 +10,7 @@
     document.documentElement.append(port);
   }
 
-  const OriginalBlob = self.Blob;
-
-  class SpoofBlob extends OriginalBlob {
+  self.Blob = class extends self.Blob {
     constructor(...args) {
       super(...args);
 
@@ -21,8 +19,8 @@
         if (type === 'application/vnd.apple.mpegurl') {
           port.dispatchEvent(new CustomEvent('media-detected', {
             detail: {
-              type,
-              content: args[0].join('')
+              content: args[0].join(''),
+              type
             }
           }));
         }
@@ -31,6 +29,5 @@
         console.info('cannot extract M3U8 content', e);
       }
     }
-  }
-  self.Blob = SpoofBlob;
+  };
 }

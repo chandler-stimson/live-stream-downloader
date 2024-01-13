@@ -390,10 +390,10 @@ const parser = async (manifest, file, href) => {
     }
 
     let o;
-    if (manifest.startsWith('http')) {
+    if (manifest.startsWith('http') || manifest.startsWith('blob:')) {
       o = new URL(manifest);
     }
-    else if (href && href.startsWith('http')) {
+    else if (href && (href.startsWith('http') || href.startsWith('blob:'))) {
       o = new URL(manifest, href);
     }
     else {

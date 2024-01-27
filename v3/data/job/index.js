@@ -1,4 +1,4 @@
-/* global MyGet, m3u8Parser */
+/* global MyGet, m3u8Parser, network */
 
 /*
   http://127.0.0.1:8000/example/sample/unencrypted.m3u8
@@ -115,6 +115,7 @@ const build = async os => {
   catch (e) {}
 
   const t = document.getElementById('entry');
+  let naming = 0;
   for (const o of os) {
     const clone = document.importNode(t.content, true);
     const div = clone.querySelector('label');
@@ -141,9 +142,12 @@ const build = async os => {
       url: 'local/' + o.name
     } : o);
     MyGet.guess(r, meta);
+
     name();
-    // optional online naming
-    if (r.url.startsWith('http') && document.getElementById('online-resolve-name').checked) {
+    // optional online naming (for the first 20 items)
+    if (naming < 20 && r.url.startsWith('http') && document.getElementById('online-resolve-name').checked) {
+      naming += 1;
+
       const controller = new AbortController();
       const signal = controller.signal;
 
@@ -183,23 +187,52 @@ const build = async os => {
   document.body.dataset.mode = document.querySelector('form .entry') ? 'ready' : 'empty';
 };
 
-chrome.scripting.executeScript({
-  target: {
-    tabId
-  },
-  func: url => {
-    self.storage = self.storage || new Map();
+Promise.all([
+  chrome.scripting.executeScript({
+    target: {
+      tabId
+    },
+    func: url => {
+      self.storage = self.storage || new Map();
 
-    if (url && self.storage.has(url) === false) {
-      self.storage.set(url, {
-        url
-      });
-    }
+      if (url && self.storage.has(url) === false) {
+        self.storage.set(url, {
+          url
+        });
+      }
 
-    return [...self.storage.values()];
-  },
-  args: [args.get('append')]
-}).then(a => a[0].result).catch(() => []).then(async os => {
+      return [...self.storage.values()];
+    },
+    args: [args.get('append')]
+  }).then(a => a[0].result).catch(() => []),
+  // get extra available resources
+  network.types({core: true, extra: false, sub: true}).then(types => chrome.scripting.executeScript({
+    target: {
+      tabId
+    },
+    func: types => performance.getEntries()
+      .filter(o => ['video', 'xmlhttprequest'].includes(o.initiatorType))
+      .filter(o => {
+        for (const type of types) {
+          if (o.name.includes('.' + type)) {
+            console.log(o.name, type);
+
+            return true;
+          }
+        }
+      })
+      .map(o => ({
+        initiator: location.href,
+        url: o.name,
+        timeStamp: performance.now() + o.startTime,
+        source: 'performance'
+      })),
+    world: 'MAIN',
+    args: [types]
+  }).then(a => a[0].result).catch(() => []))
+]).then(async ([os1, os2]) => {
+  const os = new Map();
+
   if (args.get('extra') === 'true') {
     try {
       const links = await new Promise(resolve => chrome.runtime.sendMessage({
@@ -208,20 +241,37 @@ chrome.scripting.executeScript({
       }, resolve));
 
       for (const url of links) {
-        os.push({
-          url
-        });
+        os.set(url, {url});
       }
     }
     catch (e) {
       console.error(e);
     }
   }
+  for (const o of os2) {
+    os.set(o.url, o);
+  }
+  for (const o of os1) { // overwrite os2 which does not include details
+    os.set(o.url, o);
+  }
+
+
+  let forbiddens = 0;
+  // remove forbidden links
+  const blocked = await network.blocked();
+  for (const url of os.keys()) {
+    if (blocked({url})) {
+      os.delete(url);
+      forbiddens += 1;
+    }
+  }
+
+  const items = [...os.values()];
 
   // m3u8 on top
-  os.sort((a, b) => {
-    const ah = a.url.indexOf('m3u8') !== -1;
-    const bh = b.url.indexOf('m3u8') !== -1;
+  items.sort((a, b) => {
+    const ah = a.url.includes('m3u8');
+    const bh = b.url.includes('m3u8');
     if (ah && bh === false) {
       return -1;
     }
@@ -231,7 +281,13 @@ chrome.scripting.executeScript({
     return a.timeStamp - b.timeStamp;
   });
 
-  build(os);
+  build(items);
+
+  // forbidden
+  document.getElementById('forbiddens').textContent = forbiddens;
+  if (forbiddens) {
+    document.body.classList.add('forbidden');
+  }
 });
 
 const error = e => {

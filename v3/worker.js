@@ -1,6 +1,7 @@
 /* global network */
 
 self.importScripts('network/core.js');
+self.importScripts('network/icon.js');
 self.importScripts('context.js');
 self.importScripts('/plugins/blob-detector/core.js');
 
@@ -25,7 +26,7 @@ const open = async (tab, extra = []) => {
     }
 
     chrome.windows.create({
-      url: 'data/job/index.html?' + args.toString(),
+      url: '/data/job/index.html?' + args.toString(),
       width: prefs.width,
       height: prefs.height,
       left: prefs.left,
@@ -44,9 +45,9 @@ const badge = (n, tabId) => {
     chrome.action.setIcon({
       tabId: tabId,
       path: {
-        '16': 'data/icons/active/16.png',
-        '32': 'data/icons/active/32.png',
-        '48': 'data/icons/active/48.png'
+        '16': '/data/icons/active/16.png',
+        '32': '/data/icons/active/32.png',
+        '48': '/data/icons/active/48.png'
       }
     });
 
@@ -62,9 +63,9 @@ const badge = (n, tabId) => {
     chrome.action.setIcon({
       tabId: tabId,
       path: {
-        '16': 'data/icons/16.png',
-        '32': 'data/icons/32.png',
-        '48': 'data/icons/48.png'
+        '16': '/data/icons/16.png',
+        '32': '/data/icons/32.png',
+        '48': '/data/icons/48.png'
       }
     });
     chrome.action.setBadgeText({
@@ -74,16 +75,14 @@ const badge = (n, tabId) => {
   }
 };
 
-const observe = async d => {
-  // match with the exception list
-  const blocked = await network.blocked(d);
-  if (blocked(d)) {
-    console.warn('[ignoring]', d.url);
+const observe = d => {
+  // hard-coded excludes
+  if (d.initiator.startsWith('https://www.youtube.com')) {
     return;
   }
 
   // unsupported content types
-  if (d.responseHeaders.some(({name, value}) => {
+  if (d.url.includes('.m3u8') === false && d.responseHeaders.some(({name, value}) => {
     return name === 'content-type' && value && value.startsWith('text/html');
   })) {
     return;
@@ -98,6 +97,10 @@ const observe = async d => {
       self.storage.set(v.url, v);
       if (self.storage.size > size) {
         for (const [href] of self.storage) {
+          // do not delete important links
+          if (href.includes('.m3u8')) {
+            continue;
+          }
           self.storage.delete(href);
           if (self.storage.size <= size) {
             break;

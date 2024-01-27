@@ -16,7 +16,7 @@ body {
   background-color: var(--bg-light);
   color: #4d5156;
   display: grid;
-  grid-template-rows: 1fr min-content min-content;
+  grid-template-rows: min-content 1fr min-content min-content;
   margin: 0;
   height: 100vh;
   accent-color: var(--bg-dark);
@@ -255,7 +255,7 @@ body:not([data-mode=empty]) #intro {
 }
 
 body[data-mode=download] {
-  grid-template-rows: min-content 1fr min-content min-content;
+  grid-template-rows: min-content min-content 1fr min-content min-content;
 }
 body:not([data-mode=download]) #progress {
   display: none;
@@ -333,6 +333,18 @@ body[data-mode=empty] #tools {
 }
 #power-container {
   display: contents;
+}
+#forbidden-container {
+  background-color: #fff6d6;
+  color: #1b2d5b;
+  text-align: center;
+  height: 0;
+  visibility: collapse;
+}
+body.forbidden #forbidden-container {
+  height: unset;
+  visibility: unset;
+  padding: 10px;
 }
 
 body[data-mode="prepare"] #download-all,

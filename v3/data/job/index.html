@@ -9,6 +9,8 @@
 <body data-mode="ready">
   <progress id="progress" value="0" max="100"></progress>
 
+  <div id="forbidden-container">This page includes <span id="forbiddens">0</span> link(s) that are excluded per the website owner's request.</div>
+
   <template id="entry">
     <label class="entry">
       <input type="checkbox" data-id="selected">
@@ -111,6 +113,7 @@ Acceptable Keywords: [meta.name] (default), [title], [hostname]">
   <script type="text/javascript" src="m3u8-parser.js"></script>
   <!-- Page -->
   <script type="text/javascript" src="file-picker-polyfill.js"></script>
+  <script type="text/javascript" src="/network/core.js"></script>
   <script type="text/javascript" src="index.js"></script>
   <!-- Plugins -->
   <script type="text/javascript" src="plugins/unload.js"></script>

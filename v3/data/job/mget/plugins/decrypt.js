@@ -105,13 +105,17 @@ class DGet extends MyGet {
       delete this['basic-cache'][position];
       const encrypted = await (new Blob(chunks)).arrayBuffer();
 
+      const iv = segment.key?.iv?.buffer || new ArrayBuffer(16);
+
       const decrypted = await crypto.subtle.importKey('raw', value, {
         name: 'AES-CBC',
         length: 128
-      }, false, ['decrypt']).then(importedKey => crypto.subtle.decrypt({
-        name: 'AES-CBC',
-        iv: new ArrayBuffer(16)
-      }, importedKey, encrypted));
+      }, false, ['decrypt']).then(importedKey => {
+        return crypto.subtle.decrypt({
+          name: 'AES-CBC',
+          iv
+        }, importedKey, encrypted);
+      });
 
       // write to the original cache
       const stream = new self.MemoryWriter(position, offsets[0], this.cache);

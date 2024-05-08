@@ -21,15 +21,17 @@
 
 // assumes that this.cache is replaced with {writer, offset = 0, cache = {}};
 class DiskWriter {
-  constructor(id, offset = 0, o) {
+  constructor(id, offset = 0, {writer}) {
+    let size = 0;
+
     return new WritableStream({
       async write(chunk) {
-        await o.writer.write({
+        await writer.write({
           type: 'write',
           data: chunk,
-          position: offset
+          position: offset + size
         });
-        offset += chunk.byteLength;
+        size += chunk.byteLength;
       },
       close() {}
     }, {});

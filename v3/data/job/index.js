@@ -210,7 +210,7 @@ Promise.all([
     target: {
       tabId
     },
-    func: types => performance.getEntries()
+    func: types => performance.getEntriesByType('resource')
       .filter(o => ['video', 'xmlhttprequest'].includes(o.initiatorType))
       .filter(o => {
         for (const type of types) {
@@ -296,7 +296,7 @@ const error = e => {
   document.body.dataset.mode = 'error';
 };
 
-const download = async (segments, file) => {
+const download = async (segments, file, codec = '') => {
   document.body.dataset.mode = 'download';
   progress.value = 0;
 
@@ -328,15 +328,20 @@ const download = async (segments, file) => {
     total: segments.length
   };
 
-  const n = new class extends MyGet {
-    // monitor progress
-    monitor(...args) {
-      stat.current = Math.max(stat.current, args[1]);
-      stat.fetched += args[2];
+  const n = new MyGet();
+  n.meta['base-codec'] = codec;
 
-      return super.monitor(...args);
+  // stats
+  n.monitor = new Proxy(n.monitor, {
+    apply(target, self, args) {
+      const [segment, position, chunk, offset] = args;
+      stat.current = Math.max(stat.current, position);
+      stat.fetched += chunk.byteLength;
+
+      return Reflect.apply(target, self, args);
     }
-  };
+  });
+
   Object.assign(n.options, await storage.get({
     'threads': MyGet.OPTIONS.threads,
     'error-recovery': MyGet.OPTIONS['error-recovery'],
@@ -396,8 +401,9 @@ Use the box below to update the URL`, {
 
   try {
     // attach disk writer
-    n.attach(file);
+    await n.attach(file);
 
+    // download
     await n.fetch(segments);
     clearInterval(timer);
 
@@ -433,7 +439,7 @@ Use the box below to update the URL`, {
   clearInterval(timer);
 };
 
-const parser = async (manifest, file, href) => {
+const parser = async (manifest, file, href, codec) => {
   // data uri
   if (manifest.startsWith('data:')) {
     manifest = await fetch(manifest).then(r => r.text());
@@ -477,6 +483,8 @@ const parser = async (manifest, file, href) => {
   p.push(manifest);
   p.end();
 
+  console.log(p);
+
   const playlists = p.manifest.playlists || [];
   if (playlists.length) {
     const {quality} = await storage.get({
@@ -517,8 +525,9 @@ const parser = async (manifest, file, href) => {
     const v = playlists[Number(n)];
     if (v) {
       try {
+        const codec = v.attributes?.CODECS;
         const o = new URL(v.uri, href || undefined);
-        return parser(o.href, file);
+        return parser(o.href, file, undefined, codec);
       }
       catch (e) {
         return parser(v.uri, file, href);
@@ -542,7 +551,7 @@ const parser = async (manifest, file, href) => {
     return download(segments.map(o => {
       o.base = href;
       return o;
-    }), file);
+    }), file, codec);
   }
   else {
     throw Error('No_SEGMENT_DETECTED');

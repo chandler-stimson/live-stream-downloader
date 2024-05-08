@@ -40,9 +40,11 @@ class PolicyStream extends TransformStream {
 /* use this to get fetch stats */
 class StatsStream extends TransformStream {
   constructor(c = () => {}) {
+    let offset = 0;
     super({
       transform(chunk, controller) {
-        c(chunk.byteLength);
+        c(chunk, offset);
+        offset += chunk.byteLength;
         return controller.enqueue(chunk);
       }
     });
@@ -107,6 +109,9 @@ class MGet {
     this.actives = 0;
     this.sizes = new Map(); // track segment offsets
     this.cache = {}; // store chunks of each segment in an array
+    this.meta = { // name, ext, mime
+      'written-size': 0
+    };
   }
   /* get called before a segment is started */
   prepare(segment, position) {
@@ -121,7 +126,9 @@ class MGet {
     return Promise.resolve();
   }
   /* get called when a new chunk is written */
-  monitor(segment, position, size) {
+  monitor(segment, position, chunk, offset) {
+    // console.info(segment.range.start + offset);
+    this.meta['written-size'] += chunk.byteLength;
   }
   /* get called when all segments are fetched */
   fetch(segments, params = {}) {
@@ -158,6 +165,7 @@ class MGet {
           }
           else {
             if (this.actives === 0) {
+              this.meta.done = true;
               resolve();
             }
           }
@@ -234,8 +242,8 @@ class MGet {
       request.headers.append('Range', `bytes=${segment.range.start}-${segment.range.end}`);
     }
     else {
-      // some servers perform better with ranged requests
-      request.headers.append('Range', `bytes=0-`);
+      // some servers perform better with ranged requests (some return less bytes, so we cannot use this)
+      // request.headers.append('Range', `bytes=0-`);
     }
 
     this.actives += 1;
@@ -292,8 +300,8 @@ class MGet {
               end: this.options['thread-size'],
               complex: true
             };
-            const monitor = new StatsStream(size => {
-              this.monitor(segment, position, size);
+            const monitor = new StatsStream((chunk, offset) => {
+              this.monitor(segment, position, chunk, offset);
             });
 
             const oResponse = r.body.pipeThrough(timeout).pipeThrough(policy).pipeThrough(monitor).pipeTo(writable)
@@ -342,9 +350,10 @@ class MGet {
           settled();
           // if server does not return the segment size
           let s = 0;
-          const monitor = new StatsStream(bytes => {
-            s += bytes;
-            this.monitor(segment, position, bytes);
+          const monitor = new StatsStream((chunk, offset) => {
+            s += chunk.byteLength;
+
+            this.monitor(segment, position, chunk, offset);
           });
           const timeout = new TimeoutStream(rangable ? this.options['thread-timeout'] : -1);
           return r.body.pipeThrough(timeout).pipeThrough(monitor).pipeTo(writable).then(() => {

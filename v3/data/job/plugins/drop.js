@@ -14,9 +14,25 @@ const extract = (code = '') => {
     }
   }
   catch (e) {}
-  const r = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])/ig;
-  for (const link of (code.match(r) || [])) {
-    links.add(link);
+
+  links.add(code);
+
+
+  const parts = code.split(/\s+/);
+  parts.forEach(word => {
+    try {
+      const url = new URL(word);
+      links.push(url.href);
+    }
+    catch (error) {}
+  });
+
+  // inaccurate method. Use when the native method failed
+  if (links.length === 0) {
+    const r = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])/ig;
+    for (const link of (code.match(r) || [])) {
+      links.add(link);
+    }
   }
 
   return links;

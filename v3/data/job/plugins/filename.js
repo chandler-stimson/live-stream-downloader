@@ -1,7 +1,7 @@
 /* global storage */
 
 storage.get({
-  'filename': '[meta.name]', // [meta.name], [title], [hostname]
+  'filename': '[meta.name]',
   'online-resolve-name': true
 }).then(prefs => {
   document.getElementById('filename').value = prefs.filename;

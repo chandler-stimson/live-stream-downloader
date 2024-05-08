@@ -105,7 +105,7 @@ const response = o => {
 };
 const build = async os => {
   const prefs = await storage.get({
-    'filename': '[meta.name]' // [meta.name], [title], [hostname]
+    'filename': '[meta.name]' // [meta.name], [title], [hostname], [q:query|method|default-value]
   });
   let hostname = 'NA';
   try {
@@ -113,6 +113,61 @@ const build = async os => {
     hostname = o.hostname;
   }
   catch (e) {}
+
+  // extract queries from the page
+
+  console.log(prefs);
+
+  if (prefs.filename.includes('[q:')) {
+    const regex = /\[q:((?:\[[^\]]*?\]|.)*?)\]/g;
+
+    const matches = [];
+    let match;
+
+    while ((match = regex.exec(prefs.filename)) !== null) {
+      matches.push(match[1]);
+    }
+
+    if (matches.length) {
+      await chrome.scripting.executeScript({
+        target: {
+          tabId
+        },
+        func: matches => {
+          const results = [];
+          for (const match of matches) {
+            const [query, method, defaultValue] = match.split('|');
+            let value = '';
+            try {
+              const e = document.querySelector(query);
+              if (method) {
+                value = e[method] || e.getAttribute(method);
+              }
+              else {
+                value = e.textContent;
+              }
+            }
+            catch (e) {}
+            value = value || (defaultValue || '');
+
+            results.push({
+              match,
+              value
+            });
+
+            return results;
+          }
+        },
+        args: [matches]
+      }).then(r => {
+        for (const {match, value} of r[0].result) {
+          prefs.filename = prefs.filename.replace('[q:' + match + ']', value);
+        }
+      }).catch(e => console.info('Cannot run query search on page', e));
+    }
+  }
+
+  console.log(prefs.filename);
 
   const t = document.getElementById('entry');
   let naming = 0;

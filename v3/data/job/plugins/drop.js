@@ -15,22 +15,20 @@ const extract = (code = '') => {
   }
   catch (e) {}
 
-  links.add(code);
-
-
   const parts = code.split(/\s+/);
   parts.forEach(word => {
     try {
       const url = new URL(word);
-      links.push(url.href);
+      links.add(url.href);
     }
-    catch (error) {}
+    catch (e) {}
   });
 
-  // inaccurate method. Use when the native method failed
-  if (links.length === 0) {
-    const r = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])/ig;
-    for (const link of (code.match(r) || [])) {
+  // Inaccurate and most likely truncated links. Only add those that are not extracted with the native method
+  const r = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])/ig;
+  const alreadyExtracted = [...links.keys()];
+  for (const link of (code.match(r) || [])) {
+    if (alreadyExtracted.some(a => a.startsWith(link)) === false) {
       links.add(link);
     }
   }

@@ -358,6 +358,7 @@ const download = async (segments, file, codec = '') => {
     timelines[segment.timeline].push(segment);
   }
   const kt = Object.entries(timelines);
+
   if (kt.length > 1) {
     const msg = `This media has different timelines. Each timeline usually represent an independent media ` +
       `(If you see short timelines, they're usually ads). ` +

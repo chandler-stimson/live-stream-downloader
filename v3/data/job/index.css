@@ -154,7 +154,7 @@ body:not([data-mode=empty]) #intro {
   margin: 0;
   display: block;
   overflow: auto;
-  white-space: pre;
+  white-space: pre-line;
   max-height: 50vh;
 }
 #prompt > form {

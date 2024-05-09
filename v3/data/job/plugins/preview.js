@@ -21,7 +21,6 @@
 
 class PreviewGet extends MyGet {
   preview() {
-    console.log(this.meta.codec);
     const mediaSource = new MediaSource();
     const video = document.getElementById('preview');
     video.src = URL.createObjectURL(mediaSource);

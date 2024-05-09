@@ -2,11 +2,14 @@
 
 /*
   http://127.0.0.1:8000/example/sample/unencrypted.m3u8
-  https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8
-  https://bitdash-a.akamaihd.net/content/MI201109210084_1/m3u8s/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8
-  http://demo.theoplayer.com/drm-aes-protection-128-encryption
-  https://anime.anidub.life/anime/full/11270-devushki-poni-enkoma-umayon-01-iz-13.html
-  https://soundcloud.com/nba-youngboy/youngboy-never-broke-again
+  aHR0cHM6Ly9iaXRkYXNoLWEuYWthbWFpaGQubmV0L2NvbnRlbnQvc2ludGVsL2hscy9wbGF5bGlzdC5tM3U4
+  aHR0cHM6Ly9iaXRkYXNoLWEuYWthbWFpaGQubmV0L2NvbnRlbnQvTUkyMDExMDkyMTAwODRfMS9tM3U4cy9mMDhlODBkYS1iZjFkLTRlM2QtODg5OS1mMGY2MTU1ZjZlZmEubTN1OA==
+  aHR0cDovL2RlbW8udGhlb3BsYXllci5jb20vZHJtLWFlcy1wcm90ZWN0aW9uLTEyOC1lbmNyeXB0aW9u
+  aHR0cHM6Ly9hbmltZS5hbmlkdWIubGlmZS9hbmltZS9mdWxsLzExMjcwLWRldnVzaGtpLXBvbmktZW5rb21hLXVtYXlvbi0wMS1pei0xMy5odG1s
+  aHR0cHM6Ly9zb3VuZGNsb3VkLmNvbS9uYmEteW91bmdib3kveW91bmdib3ktbmV2ZXItYnJva2UtYWdhaW4=
+
+  Encrypted with discontinuity and audio and subtitle media groups
+    aHR0cHM6Ly93d3cuc2JzLmNvbS5hdS9vbmRlbWFuZC93YXRjaC85MTUxNzAzNzE4MzQ=
 */
 
 const args = new URLSearchParams(location.search);
@@ -114,10 +117,7 @@ const build = async os => {
   }
   catch (e) {}
 
-  // extract queries from the page
-
-  console.log(prefs);
-
+  // extract "q:" matches from the page
   if (prefs.filename.includes('[q:')) {
     const regex = /\[q:((?:\[[^\]]*?\]|.)*?)\]/g;
 
@@ -166,8 +166,6 @@ const build = async os => {
       }).catch(e => console.info('Cannot run query search on page', e));
     }
   }
-
-  console.log(prefs.filename);
 
   const t = document.getElementById('entry');
   let naming = 0;
@@ -270,8 +268,6 @@ Promise.all([
       .filter(o => {
         for (const type of types) {
           if (o.name.includes('.' + type)) {
-            console.log(o.name, type);
-
             return true;
           }
         }
@@ -354,6 +350,44 @@ const error = e => {
 const download = async (segments, file, codec = '') => {
   document.body.dataset.mode = 'download';
   progress.value = 0;
+
+  // remove discontinuity
+  const timelines = {};
+  for (const segment of segments) {
+    timelines[segment.timeline] = timelines[segment.timeline] || [];
+    timelines[segment.timeline].push(segment);
+  }
+  const kt = Object.entries(timelines);
+  if (kt.length > 1) {
+    const msg = `This media has different timelines. Each timeline usually represent an independent media ` +
+      `(If you see short timelines, they're usually ads). ` +
+      `Pick the one you want to download. `+
+      `You can repeat to download more timelines later.`;
+
+    // select the longest timeline
+    let value = 0;
+    let m = 0;
+    for (const [id, a] of kt) {
+      if (m < a.length) {
+        value = id;
+        m = a.length;
+      }
+    }
+    const n = await self.prompt(msg + `
+
+${kt.map(([id, a]) => {
+    return id + ' (includes ' + a.length + ' segments)';
+  }).join('\n')}`, {
+      ok: 'Select',
+      no: 'Cancel',
+      value
+    }, true);
+
+    segments = timelines[n];
+  }
+  if (Array.isArray(segments) === false) {
+    throw Error('UNKNOWN_TIMELINE');
+  }
 
   // remove duplicated segments (e.g. video/fMP4)
   const links = [];
@@ -538,9 +572,31 @@ const parser = async (manifest, file, href, codec) => {
   p.push(manifest);
   p.end();
 
-  console.log(p);
+  console.info('Manifest', p);
 
   const playlists = p.manifest.playlists || [];
+  // add media groups
+  if (p.manifest.mediaGroups) {
+    for (const [type, group] of Object.entries(p.manifest.mediaGroups)) {
+      try {
+        Object.values(group).forEach(g => {
+          for (const [lang, o] of Object.entries(g)) {
+            playlists.push({
+              ...o,
+              group: {
+                lang,
+                type
+              }
+            });
+          }
+        });
+      }
+      catch (e) {
+        console.error('cannot append a media group', e);
+      }
+    }
+  }
+
   if (playlists.length) {
     const {quality} = await storage.get({
       quality: 'selector'
@@ -549,6 +605,17 @@ const parser = async (manifest, file, href, codec) => {
     let n = 0; // highest
     // sort based on highest quality
     playlists.sort((a, b) => {
+      // dealing with groups
+      if (a.group && !b.group) {
+        return 1;
+      }
+      if (b.group && !a.group) {
+        return -1;
+      }
+      if (a.group && b.group) {
+        return b.group.type.localeCompare(a.group.type);
+      }
+      //
       try {
         return b.attributes.RESOLUTION.width - a.attributes.RESOLUTION.width;
       }
@@ -559,12 +626,35 @@ const parser = async (manifest, file, href, codec) => {
     if (quality === 'selector') {
       const msgs = [];
 
+      const trim = (str, trimSize = 40) => {
+        if (str.length <= trimSize) {
+          return str;
+        }
+
+        const start = str.substring(0, trimSize / 2 - 2); // -2 to account for the ellipsis
+        const end = str.substring(str.length - trimSize / 2 + 1); // +1 to keep the ellipsis at the end
+
+        return start + '...' + end;
+      };
+
       for (const playlist of playlists) {
         if (playlist.attributes && playlist.attributes.RESOLUTION) {
-          msgs.push(playlist.attributes.RESOLUTION.width + ' × ' + playlist.attributes.RESOLUTION.height + ' -> ' + playlist.uri.substr(-60));
+          msgs.push(
+            'Video [' +
+            playlist.attributes.RESOLUTION.width + ' × ' +
+            playlist.attributes.RESOLUTION.height + '] -> ' +
+            trim(playlist.uri)
+          );
+        }
+        else if (playlist.group) {
+          msgs.push(
+            playlist.group.type.toLowerCase() + ' [' +
+            playlist.group.lang.toLowerCase() + '] -> ' +
+            trim(playlist.uri, 30)
+          );
         }
         else {
-          msgs.push(playlist.uri.substr(-30));
+          msgs.push(trim(playlist.uri));
         }
       }
       n = (playlists.length > 1 ? await prompt('Select one stream:\n\n' + msgs.map((m, n) => n + '. ' + m).join('\n'), {
@@ -574,7 +664,9 @@ const parser = async (manifest, file, href, codec) => {
       }, true) : 0);
     }
     else if (quality === 'lowest') {
-      n = playlists.length - 1;
+      // remove media groups first
+      // n = playlists.length - 1;
+      n = playlists.filter(o => !o.group).length - 1;
     }
 
     const v = playlists[Number(n)];

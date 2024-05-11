@@ -154,9 +154,8 @@ const build = async os => {
               match,
               value
             });
-
-            return results;
           }
+          return results;
         },
         args: [matches]
       }).then(r => {

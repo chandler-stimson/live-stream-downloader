@@ -78,6 +78,10 @@ class EGet extends MyGet {
         if (this.controller.signal.aborted) {
           throw e;
         }
+        // if server returns 403 or 404 error, there is no need to retry
+        if (/STATUS_40\d/.test(e.message)) {
+          throw e;
+        }
         if (n > this.options['error-tolerance']) {
           await this.options['error-handler'](e, 'BROKEN_PIPE', segment);
           this.errors.set(uri, 0);

@@ -53,8 +53,7 @@ class CGet extends MyGet {
       return r;
     }).catch(e => {
       caches.delete(this['cache-id']);
-
-      throw Error(e);
+      throw e;
     });
   }
 }

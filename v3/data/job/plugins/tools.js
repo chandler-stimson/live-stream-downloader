@@ -7,6 +7,8 @@
 
     document.getElementById('download-all').disabled = !b;
   });
+
+  /* TO-DO: download with batch() function */
   document.getElementById('download-all').onclick = async () => {
     try {
       const divs = [...hrefs.querySelectorAll(':checked')].map(e => e.closest('label'));

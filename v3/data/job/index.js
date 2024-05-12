@@ -57,6 +57,7 @@ self.prompt = (msg, buttons = {
     const root = document.getElementById('prompt');
     self.prompt.cache.push({resolve, reject});
 
+
     if (root.open === false) {
       root.querySelector('p').textContent = msg;
       root.dataset.mode = confirm ? 'confirm' : 'prompt';
@@ -67,26 +68,36 @@ self.prompt = (msg, buttons = {
       root.querySelector('[name=value]').type = isNaN(buttons.value) ? 'text' : 'number';
       root.querySelector('[value=default]').textContent = buttons.ok;
       root.querySelector('[value=cancel]').textContent = buttons.no;
+      root.querySelector('[value=extra]').textContent = buttons.extra || '';
+
+      let value = Error('USER_ABORT');
 
       root.onsubmit = e => {
         e.preventDefault();
-        root.close();
         if (e.submitter.value === 'default') {
-          const value = root.querySelector('[name=value]').value;
+          value = root.querySelector('[name=value]').value;
+          root.close();
+        }
+        else if (e.submitter.value === 'extra') {
+          value = 'EXTRA';
+          root.close();
+        }
+        else {
+          root.close();
+        }
+      };
+      root.onclose = () => {
+        if (value instanceof Error) {
+          for (const {reject} of self.prompt.cache) {
+            reject(value);
+          }
+        }
+        else {
           for (const {resolve} of self.prompt.cache) {
             resolve(value);
           }
         }
-        else {
-          root.onclose();
-        }
-        self.prompt.cache = [];
-      };
-      root.onclose = () => {
-        const e = Error('USER_ABORT');
-        for (const {reject} of self.prompt.cache) {
-          reject(e);
-        }
+        self.prompt.cache.length = 0;
       };
 
       root.showModal();
@@ -298,10 +309,11 @@ Promise.all([
       console.error(e);
     }
   }
-  for (const o of os2) {
+
+  for (const o of (os2 || [])) {
     os.set(o.url, o);
   }
-  for (const o of os1) { // overwrite os2 which does not include details
+  for (const o of (os1 || [])) { // overwrite os2 which does not include details
     os.set(o.url, o);
   }
 
@@ -319,17 +331,17 @@ Promise.all([
   const items = [...os.values()];
 
   // m3u8 on top
-  items.sort((a, b) => {
-    const ah = a.url.includes('m3u8');
-    const bh = b.url.includes('m3u8');
-    if (ah && bh === false) {
-      return -1;
-    }
-    if (bh && ah === false) {
-      return 1;
-    }
-    return a.timeStamp - b.timeStamp;
-  });
+  // items.sort((a, b) => {
+  //   const ah = a.url.includes('m3u8');
+  //   const bh = b.url.includes('m3u8');
+  //   if (ah && bh === false) {
+  //     return -1;
+  //   }
+  //   if (bh && ah === false) {
+  //     return 1;
+  //   }
+  //   return a.timeStamp - b.timeStamp;
+  // });
 
   build(items);
 
@@ -378,10 +390,21 @@ const download = async (segments, file, codec = '') => {
 ${kt.map(([id, a]) => {
     return id + ' (includes ' + a.length + ' segments)';
   }).join('\n')}`, {
-      ok: 'Select',
+      ok: 'Select a Timeline',
+      extra: 'Download all Timelines',
       no: 'Cancel',
       value
     }, true);
+
+    if (n === 'EXTRA') {
+      const jobs = [];
+      for (const [timeline, segments] of kt) {
+        const name = file.name.replace(/\.(?=[^.]+$)/, '-' + timeline + '.');
+        jobs.push({name, segments});
+      }
+      file.remove();
+      return self.batch(jobs, codec);
+    }
 
     segments = timelines[n];
   }

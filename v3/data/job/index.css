@@ -180,6 +180,9 @@ body:not([data-mode=empty]) #intro {
 #prompt [name=value]:not([required]) {
   display: none;
 }
+#prompt [value=extra]:empty {
+  display: none;
+}
 
 .entry {
   display: contents;

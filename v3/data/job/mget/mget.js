@@ -176,7 +176,7 @@ class MGet {
     }).catch(e => {
       console.warn(e);
       this.controller.abort();
-      throw Error(e);
+      throw e;
     });
   }
   /* returns total number of permitted new network connections */

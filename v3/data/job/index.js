@@ -402,7 +402,10 @@ ${kt.map(([id, a]) => {
         const name = file.name.replace(/\.(?=[^.]+$)/, '-' + timeline + '.');
         jobs.push({name, segments});
       }
-      file.remove();
+      try {
+        file.remove();
+      }
+      catch (e) {}
       return self.batch(jobs, codec);
     }
 

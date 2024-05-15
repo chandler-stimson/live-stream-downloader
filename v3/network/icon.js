@@ -13,26 +13,30 @@
   };
 
   // display forbidden icon for blocked hostnames
-  const icon = () => chrome.declarativeContent.onPageChanged.removeRules(undefined, async () => {
-    const hosts = await network.hosts();
-    const list = hosts.filter(o => o.type === 'host').map(o => o.value.replace(/^\./, ''));
+  const icon = () => {
+    if (chrome.declarativeContent) {
+      chrome.declarativeContent.onPageChanged.removeRules(undefined, async () => {
+        const hosts = await network.hosts();
+        const list = hosts.filter(o => o.type === 'host').map(o => o.value.replace(/^\./, ''));
 
-    const conditions = list.map(hostSuffix => new chrome.declarativeContent.PageStateMatcher({
-      pageUrl: {hostSuffix}
-    }));
+        const conditions = list.map(hostSuffix => new chrome.declarativeContent.PageStateMatcher({
+          pageUrl: {hostSuffix}
+        }));
 
-    chrome.declarativeContent.onPageChanged.addRules([{
-      conditions,
-      actions: [
-        new chrome.declarativeContent.SetIcon({
-          imageData: {
-            16: await image('/data/icons/forbidden/16.png'),
-            32: await image('/data/icons/forbidden/32.png')
-          }
-        })
-      ]
-    }]);
-  });
+        chrome.declarativeContent.onPageChanged.addRules([{
+          conditions,
+          actions: [
+            new chrome.declarativeContent.SetIcon({
+              imageData: {
+                16: await image('/data/icons/forbidden/16.png'),
+                32: await image('/data/icons/forbidden/32.png')
+              }
+            })
+          ]
+        }]);
+      });
+    }
+  };
 
   // This list includes the list of rules to get blocked by this extension
   // The extension does not offer downloading resources included in this list

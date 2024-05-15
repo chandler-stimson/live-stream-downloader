@@ -77,7 +77,7 @@ const badge = (n, tabId) => {
 
 const observe = d => {
   // hard-coded excludes
-  if (d.initiator.startsWith('https://www.youtube.com')) {
+  if (d.initiator && d.initiator.startsWith('https://www.youtube.com')) {
     return;
   }
 

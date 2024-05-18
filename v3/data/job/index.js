@@ -10,6 +10,8 @@
 
   Encrypted with discontinuity and audio and subtitle media groups
     aHR0cHM6Ly93d3cuc2JzLmNvbS5hdS9vbmRlbWFuZC93YXRjaC85MTUxNzAzNzE4MzQ=
+
+  https://raw.githubusercontent.com/ooyala/m3u8/master/sample-playlists/media-playlist-with-discontinuity.m3u8
 */
 
 const args = new URLSearchParams(location.search);
@@ -68,7 +70,9 @@ self.prompt = (msg, buttons = {
       root.querySelector('[name=value]').type = isNaN(buttons.value) ? 'text' : 'number';
       root.querySelector('[value=default]').textContent = buttons.ok;
       root.querySelector('[value=cancel]').textContent = buttons.no;
-      root.querySelector('[value=extra]').textContent = buttons.extra || '';
+      [...root.querySelectorAll('[value=extra]')].forEach((e, n) => {
+        e.textContent = buttons.extra ? buttons.extra[n] : '';
+      });
 
       let value = Error('USER_ABORT');
 
@@ -79,7 +83,7 @@ self.prompt = (msg, buttons = {
           root.close();
         }
         else if (e.submitter.value === 'extra') {
-          value = 'EXTRA';
+          value = e.submitter.dataset.id;
           root.close();
         }
         else {
@@ -371,10 +375,10 @@ const download = async (segments, file, codec = '') => {
   const kt = Object.entries(timelines);
 
   if (kt.length > 1) {
-    const msg = `This media has different timelines. Each timeline usually represent an independent media ` +
-      `(If you see short timelines, they're usually ads). ` +
-      `Pick the one you want to download. `+
-      `You can repeat to download more timelines later.`;
+    const msg = `This M3U8 media file contains different timelines, each usually representing a separate piece of ` +
+      `media (short timelines are often ads). Choose the timeline you want to download. You can repeat the process ` +
+      `to download more timelines later. It's best to download each timeline separately, but you can also download ` +
+      `all segments into one file (though it might not play properly).`;
 
     // select the longest timeline
     let value = 0;
@@ -391,12 +395,12 @@ ${kt.map(([id, a]) => {
     return id + ' (includes ' + a.length + ' segments)';
   }).join('\n')}`, {
       ok: 'Select a Timeline',
-      extra: 'Download all Timelines',
+      extra: ['Download Each Separately', 'Ignore Timelines'],
       no: 'Cancel',
       value
     }, true);
 
-    if (n === 'EXTRA') {
+    if (n === 'extra-0') {
       const jobs = [];
       for (const [timeline, segments] of kt) {
         const name = file.name.replace(/\.(?=[^.]+$)/, '-' + timeline + '.');
@@ -408,12 +412,15 @@ ${kt.map(([id, a]) => {
       catch (e) {}
       return self.batch(jobs, codec);
     }
-
-    segments = timelines[n];
+    else if (n !== 'extra-1') {
+      segments = timelines[n];
+    }
   }
   if (Array.isArray(segments) === false) {
     throw Error('UNKNOWN_TIMELINE');
   }
+
+  console.log(segments);
 
   // remove duplicated segments (e.g. video/fMP4)
   const links = [];

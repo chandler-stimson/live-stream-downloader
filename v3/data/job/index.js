@@ -420,8 +420,6 @@ ${kt.map(([id, a]) => {
     throw Error('UNKNOWN_TIMELINE');
   }
 
-  console.log(segments);
-
   // remove duplicated segments (e.g. video/fMP4)
   const links = [];
   segments = segments.filter(s => {

@@ -98,7 +98,7 @@ class CodecGet extends MyGet {
       }
     }
     catch (e) {
-      console.log(e);
+      console.error(e);
     }
 
     return super.monitor(...args);

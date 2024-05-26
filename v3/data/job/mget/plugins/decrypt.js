@@ -76,7 +76,9 @@ class DGet extends MyGet {
         try {
           r = await this.native(href, {
             'credentials': 'include'
-          }, true);
+          }, {
+            save: true
+          });
           if (r.ok) {
             break;
           }

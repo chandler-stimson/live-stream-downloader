@@ -358,7 +358,7 @@ Promise.all([
 
 const error = e => {
   console.warn(e);
-  document.title = e.message;
+  document.title = e?.message;
   document.body.dataset.mode = 'error';
 };
 
@@ -464,23 +464,22 @@ ${kt.map(([id, a]) => {
 
   Object.assign(n.options, await storage.get({
     'threads': MyGet.OPTIONS.threads,
-    'error-recovery': MyGet.OPTIONS['error-recovery'],
     'thread-timeout': MyGet.OPTIONS['thread-timeout']
   }));
 
   // instead of breaking, let the user retry
-  n.options['error-handler'] = (e, source, segment) => {
+  n.options['error-handler'] = (e, source, href) => {
     return self.prompt(`Connection to the server is broken (${source} -> ${e.message})!
 
 Use the box below to update the URL`, {
       ok: 'Retry',
       no: 'Cancel',
-      value: segment.uri
+      value: href
     }, true).then(v => {
       if (v) {
         try {
           new URL(v);
-          segment.uri = v;
+          return v;
         }
         catch (e) {
           console.info('URL replacement ignored', e);

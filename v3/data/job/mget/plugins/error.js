@@ -24,6 +24,8 @@
   it is considered that the writable supports overwriting old segments
 */
 
+
+/* a fetch that fixes broken pipe */
 class EGet extends MyGet {
   constructor(...args) {
     super(...args);
@@ -31,67 +33,187 @@ class EGet extends MyGet {
     this.options['error-tolerance'] = 20; // number; number of times a single uri can throw error before breaking
     this.options['error-delay'] = 300; // ms; min-delay before restarting the segment
     this.options['error-handler'] = e => Promise.reject(e);
-    this.options['error-recovery'] = true; // if true, the extension does not download already download chunks of a segment anymore
 
     this.errors = new Map(); // stores error counts
   }
-  monitor(...args) {
-    super.monitor(...args);
-    // when data is received, reset the error count
-    const [segment,, size] = args;
 
-    // do not download already fetched chunks
-    if (this.options['error-recovery'] && segment.range) {
-      if (segment.range.start + size < segment.range.end) {
-        segment.range.start += size;
-      }
-    }
+  /* returns the native fetch */
+  async native(...args) {
+    let [request] = args;
+    const [, params, extra] = args;
 
-    // reset error counter
-    this.errors.set(segment.uri, 0);
-  }
-  async pipe(...args) {
-    const [segment] = args;
-    const {uri} = segment;
+    const {errors, options} = this;
 
+    const timeout = {
+      delay: this.options['thread-timeout'] || 10000
+      // delay: 60
+    };
+
+    /* native fetch with custom timeout */
+    const native = () => {
+      timeout.controller = new AbortController();
+
+      return super.native(request, {
+        ...params,
+        signal: AbortSignal.any([timeout.controller.signal, params.signal])
+      }, extra);
+    };
+
+    let response;
+    // try to fix broken pipe before header received
     for (;;) {
       try {
-        const r = await super.pipe(...args);
-
-        // for complex ranges, we need to wait for all extra threads to finish
-        if (segment?.range?.complex) {
-          const check = () => {
-            if (segment.extraThreads.size) {
-              return Promise.allSettled(segment.extraThreads).then(check);
-            }
-            return r;
-          };
-          return check();
-        }
-        return r;
+        response = await native();
+        break;
       }
       catch (e) {
-        const n = (this.errors.get(uri) ?? 0) + 1;
-        this.errors.set(uri, n);
+        const counter = errors.get(request.url) ?? 0;
+        errors.set(request.url, counter + 1);
+        console.info('pipe is broken :: ', e.message, `#${counter}`);
 
-        console.info('pipe is broken', 'retrying', n, 'message', e.message);
-        if (this.controller.signal.aborted) {
-          throw e;
-        }
         // if server returns 403 or 404 error, there is no need to retry
-        if (/STATUS_40\d/.test(e.message)) {
+        if (params.signal?.aborted) {
           throw e;
         }
-        if (n > this.options['error-tolerance']) {
-          await this.options['error-handler'](e, 'BROKEN_PIPE', segment);
-          this.errors.set(uri, 0);
+        else if (
+          counter > options['error-tolerance'] ||
+          (response?.status >= 400 && response?.status < 500)
+        ) {
+          const href = await options['error-handler'](e, 'BROKEN_PIPE', request.url);
+          if (href) {
+            request = new Request(href, request);
+            if (extra.segment) {
+              extra.segment.uri = href;
+            }
+            errors.set(href, 0);
+          }
+          else {
+            throw e;
+          }
         }
         else {
-          const delay = Math.min(20000, this.options['error-delay'] * n);
+          const delay = Math.min(20000, options['error-delay'] * counter);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
     }
+
+    return new Proxy(response, {
+      get(target, prop) {
+        if (prop !== 'body') {
+          return Reflect.get(target, prop);
+        }
+
+        let reader;
+        let offset = 0;
+        let controller;
+        let active = true;
+
+        // try to fix broken pipe after data flow
+        const recover = async e => {
+          if (!active) {
+            return;
+          }
+          if (extra.rangable === false) {
+            controller.error(Error('BROKEN_PIPE_NOT_RANGABLE'));
+            return;
+          }
+          const counter = errors.get(request.url) ?? 0;
+          console.info('pipe is broken :: ', e.message, `#${counter}`);
+
+          const range = request.headers.get('Range') || 'bytes=0-';
+          const [start, end] = range.split('=')[1].split('-');
+
+          try {
+            request.headers.set('Range', 'bytes=' + (Number(start) + offset) + '-' + end);
+            offset = 0;
+
+            response = await native();
+            reader = response.body.getReader();
+
+            pump();
+          }
+          catch (e) {
+            errors.set(request.url, counter + 1);
+
+            // if server returns 403 or 404 error, there is no need to retry
+            if (counter > options['error-tolerance'] || (response?.status >= 400 && response?.status < 500)) {
+              try {
+                const href = await options['error-handler'](e, 'BROKEN_PIPE', request.url);
+                if (href) {
+                  args[0] = request = new Request(href, request);
+                  if (extra.segment) {
+                    extra.segment.uri = href;
+                  }
+                  errors.set(href, 0);
+                  recover(e);
+                }
+                else {
+                  controller.error(e);
+                }
+              }
+              catch (e) {
+                controller.error(e);
+              }
+            }
+            else {
+              const delay = Math.min(20000, options['error-delay'] * counter);
+              await new Promise(resolve => setTimeout(resolve, delay));
+              recover(e);
+            }
+          }
+        };
+
+        const pump = () => {
+          if (!active) {
+            return;
+          }
+          // timeout
+          clearTimeout(timeout.id);
+          timeout.id = setTimeout(() => timeout.controller.abort(), timeout.delay);
+
+          // pump
+          return reader.read().then(({done, value}) => {
+            if (done) {
+              controller.close();
+              return;
+            }
+            errors.set(request.url, 0);
+
+            controller.enqueue(value);
+            offset += value.byteLength;
+            return pump();
+          }).catch(e => recover(e));
+        };
+
+        return new ReadableStream({
+          start(c) {
+            controller = c;
+            controller.close = new Proxy(controller.close, {
+              apply(target, self, args) {
+                clearTimeout(timeout.id);
+                return Reflect.apply(target, self, args);
+              }
+            });
+            controller.error = new Proxy(controller.error, {
+              apply(target, self, args) {
+                clearTimeout(timeout.id);
+                return Reflect.apply(target, self, args);
+              }
+            });
+
+            reader = Reflect.get(target, prop).getReader();
+
+            return pump();
+          },
+          cancel() {
+            active = false;
+            reader.cancel();
+            clearTimeout(timeout.id);
+          }
+        });
+      }
+    });
   }
 }
 

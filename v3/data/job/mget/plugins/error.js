@@ -49,14 +49,17 @@ class EGet extends MyGet {
       // delay: 60
     };
 
-    /* native fetch with custom timeout */
+    /* native fetch with custom timeout (if supported) */
     const native = () => {
       timeout.controller = new AbortController();
 
-      return super.native(request, {
-        ...params,
-        signal: AbortSignal.any([timeout.controller.signal, params.signal])
-      }, extra);
+      if ('AbortSignal' in self && 'any' in AbortSignal) {
+        return super.native(request, {
+          ...params,
+          signal: AbortSignal.any([timeout.controller.signal, params.signal])
+        }, extra);
+      }
+      return super.native(request, params, extra);
     };
 
     let response;

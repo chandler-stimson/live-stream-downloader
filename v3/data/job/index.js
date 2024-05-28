@@ -656,7 +656,7 @@ const parser = async (manifest, file, href, codec) => {
     if (quality === 'selector') {
       const msgs = [];
 
-      const trim = (str, trimSize = 40) => {
+      const trim = (str = '', trimSize = 40) => {
         if (str.length <= trimSize) {
           return str;
         }

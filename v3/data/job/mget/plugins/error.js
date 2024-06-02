@@ -54,9 +54,12 @@ class EGet extends MyGet {
       timeout.controller = new AbortController();
 
       if ('AbortSignal' in self && 'any' in AbortSignal) {
+        const signal = params?.signal ?
+          AbortSignal.any([timeout.controller.signal, params.signal]) : timeout.controller.signal;
+
         return super.native(request, {
           ...params,
-          signal: AbortSignal.any([timeout.controller.signal, params.signal])
+          signal
         }, extra);
       }
       return super.native(request, params, extra);
@@ -102,9 +105,15 @@ class EGet extends MyGet {
     }
 
     return new Proxy(response, {
-      get(target, prop) {
+      get(target, prop, receiver) {
         if (prop !== 'body') {
-          return Reflect.get(target, prop);
+          const value = target[prop];
+          if (value instanceof Function) {
+            return function(...args) {
+              return value.apply(this === receiver ? target : this, args);
+            };
+          }
+          return value;
         }
 
         let reader;

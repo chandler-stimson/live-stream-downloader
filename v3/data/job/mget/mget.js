@@ -52,8 +52,6 @@ class StatsStream extends TransformStream {
 }
 self.StatsStream = StatsStream;
 
-
-
 /* a simple memory writable stream */
 class BasicWriter {
   constructor(id, offset = 0, cache = {}) {

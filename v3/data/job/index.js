@@ -12,6 +12,9 @@
     aHR0cHM6Ly93d3cuc2JzLmNvbS5hdS9vbmRlbWFuZC93YXRjaC85MTUxNzAzNzE4MzQ=
 
   https://raw.githubusercontent.com/ooyala/m3u8/master/sample-playlists/media-playlist-with-discontinuity.m3u8
+
+  Encrypted
+  https://www.radiantmediaplayer.com/media/rmp-segment/bbb-abr-aes/playlist.m3u8
 */
 
 const args = new URLSearchParams(location.search);

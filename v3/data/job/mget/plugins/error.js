@@ -49,6 +49,15 @@ class EGet extends MyGet {
       // delay: 60
     };
 
+    // none recoverable status codes
+    const broken = status => {
+      // 408 Request Timeout, 425 Too Early, 429 Too Many Requests
+      if (status >= 400 && status < 500 && [408, 425, 429].includes(status) === false) {
+        return true;
+      }
+      return false;
+    };
+
     /* native fetch with custom timeout (if supported) */
     const native = () => {
       timeout.controller = new AbortController();
@@ -81,10 +90,7 @@ class EGet extends MyGet {
         if (params.signal?.aborted) {
           throw e;
         }
-        else if (
-          counter > options['error-tolerance'] ||
-          (response?.status >= 400 && response?.status < 500)
-        ) {
+        else if (counter > options['error-tolerance'] || broken(response?.status)) {
           const href = await options['error-handler'](e, 'BROKEN_PIPE', request.url);
           if (href) {
             request = new Request(href, request);
@@ -149,7 +155,7 @@ class EGet extends MyGet {
             errors.set(request.url, counter + 1);
 
             // if server returns 403 or 404 error, there is no need to retry
-            if (counter > options['error-tolerance'] || (response?.status >= 400 && response?.status < 500)) {
+            if (counter > options['error-tolerance'] || broken(response?.status)) {
               try {
                 const href = await options['error-handler'](e, 'BROKEN_PIPE', request.url);
                 if (href) {

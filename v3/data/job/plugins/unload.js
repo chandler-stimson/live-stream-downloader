@@ -29,10 +29,10 @@ const done = (success, done) => {
 };
 events.after.add(done);
 
-chrome.storage.local.get({
+browser.storage.local.get({
   'autoclose': false
 }, prefs => document.getElementById('autoclose').checked = prefs.autoclose);
 
-document.getElementById('autoclose').onchange = e => chrome.storage.local.set({
+document.getElementById('autoclose').onchange = e => browser.storage.local.set({
   'autoclose': e.target.checked
 });

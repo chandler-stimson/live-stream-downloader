@@ -1,5 +1,0 @@
-{
-  "description": {
-    "message": "Detekce a stahování streamů M3U8 HLS (HTTP Live Stream) ve více vláknech na místní disk"
-  }
-}

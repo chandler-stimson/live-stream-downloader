@@ -881,7 +881,7 @@ if (typeof exports !== 'undefined') {
 // file:src/DataStream-write.js
 /**
   Saves the DataStream contents to the given filename.
-  Uses Chrome's anchor download property to initiate download.
+  Uses chrome's anchor download property to initiate download.
  
   @param {string} filename Filename to save as.
   @return {null}

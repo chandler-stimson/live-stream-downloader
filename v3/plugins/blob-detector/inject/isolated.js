@@ -12,7 +12,7 @@ catch (e) {
 port.addEventListener('media-detected', e => {
   const {content, type} = e.detail;
 
-  chrome.runtime.sendMessage({
+  browser.runtime.sendMessage({
     method: 'media-detected',
     context: 'blob-detector-plugin',
     d: {

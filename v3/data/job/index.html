@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html translate="no">
-<head>
+<head><script src="/v2/browser.runtime.js"></script><script src="/v2/browser.scripting.js"></script><script src="/v2/browser.declarativeNetRequest.js"></script><script src="/v2/browser.tabs.query.js"></script><script src="/v2/browser.permissions.contains.js"></script><script src="/v2/browser.permissions.request.js"></script><script src="/v2/browser.power.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Download a Media</title>
@@ -8,9 +8,6 @@
 </head>
 <body data-mode="ready">
   <progress id="progress" value="0" max="100"></progress>
-
-  <div id="forbidden-container">This page includes <span id="forbiddens">0</span> link(s) that are excluded per the website owner's request.</div>
-
   <template id="entry">
     <label class="entry">
       <input type="checkbox" data-id="selected">

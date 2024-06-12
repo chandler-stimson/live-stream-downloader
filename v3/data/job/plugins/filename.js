@@ -22,6 +22,6 @@ const changed = target => {
   });
 }
 
-document.getElementById('online-resolve-name').onchange = e => chrome.storage.local.set({
+document.getElementById('online-resolve-name').onchange = e => browser.storage.local.set({
   'online-resolve-name': e.target.checked
 });

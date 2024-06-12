@@ -5,10 +5,10 @@ const activate = () => {
     return;
   }
   activate.busy = true;
-  chrome.storage.local.get({
+  browser.storage.local.get({
     'mime-watch': false
   }, async prefs => {
-    await chrome.scripting.unregisterContentScripts({
+    await browser.scripting.unregisterContentScripts({
       ids: ['bb_main', 'bb_isolated']
     }).catch(() => {});
 
@@ -21,13 +21,13 @@ const activate = () => {
       };
 
       try {
-        await chrome.scripting.registerContentScripts([{
+        await browser.scripting.registerContentScripts([{
           ...props,
           'id': 'bb_main',
           'world': 'MAIN',
           'js': ['/plugins/blob-detector/inject/main.js']
         }]);
-        await chrome.scripting.registerContentScripts([{
+        await browser.scripting.registerContentScripts([{
           ...props,
           'id': 'bb_isolated',
           'world': 'ISOLATED',
@@ -40,6 +40,6 @@ const activate = () => {
   });
 };
 
-chrome.runtime.onStartup.addListener(activate);
-chrome.runtime.onInstalled.addListener(activate);
-chrome.storage.onChanged.addListener(ps => ps['mime-watch'] && activate());
+browser.runtime.onStartup.addListener(activate);
+browser.runtime.onInstalled.addListener(activate);
+browser.storage.onChanged.addListener(ps => ps['mime-watch'] && activate());

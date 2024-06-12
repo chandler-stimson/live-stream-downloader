@@ -29,10 +29,10 @@ const events = {
 
 const storage = {
   get(prefs) {
-    return new Promise(resolve => chrome.storage.local.get(prefs, resolve));
+    return new Promise(resolve => browser.storage.local.get(prefs, resolve));
   },
   set(prefs) {
-    return new Promise(resolve => chrome.storage.local.set(prefs, resolve));
+    return new Promise(resolve => browser.storage.local.set(prefs, resolve));
   }
 };
 
@@ -147,7 +147,7 @@ const build = async os => {
     }
 
     if (matches.length) {
-      await chrome.scripting.executeScript({
+      await browser.scripting.executeScript({
         target: {
           tabId
         },
@@ -258,7 +258,7 @@ const build = async os => {
 };
 
 Promise.all([
-  chrome.scripting.executeScript({
+  browser.scripting.executeScript({
     target: {
       tabId
     },
@@ -276,7 +276,7 @@ Promise.all([
     args: [args.get('append')]
   }).then(a => a[0].result).catch(() => []),
   // get extra available resources
-  network.types({core: true, extra: false, sub: true}).then(types => chrome.scripting.executeScript({
+  network.types({core: true, extra: false, sub: true}).then(types => browser.scripting.executeScript({
     target: {
       tabId
     },
@@ -295,7 +295,7 @@ Promise.all([
         timeStamp: performance.now() + o.startTime,
         source: 'performance'
       })),
-    world: 'MAIN',
+    world: 'ISOLATED',
     args: [types]
   }).then(a => a[0].result).catch(() => []))
 ]).then(async ([os1, os2]) => {
@@ -303,7 +303,7 @@ Promise.all([
 
   if (args.get('extra') === 'true') {
     try {
-      const links = await new Promise(resolve => chrome.runtime.sendMessage({
+      const links = await new Promise(resolve => browser.runtime.sendMessage({
         method: 'get-extra',
         tabId
       }, resolve));
@@ -324,17 +324,6 @@ Promise.all([
     os.set(o.url, o);
   }
 
-
-  let forbiddens = 0;
-  // remove forbidden links
-  const blocked = await network.blocked();
-  for (const url of os.keys()) {
-    if (blocked({url})) {
-      os.delete(url);
-      forbiddens += 1;
-    }
-  }
-
   const items = [...os.values()];
 
   // m3u8 on top
@@ -351,12 +340,6 @@ Promise.all([
   // });
 
   build(items);
-
-  // forbidden
-  document.getElementById('forbiddens').textContent = forbiddens;
-  if (forbiddens) {
-    document.body.classList.add('forbidden');
-  }
 });
 
 const error = e => {

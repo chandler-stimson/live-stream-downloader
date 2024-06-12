@@ -337,18 +337,6 @@ body[data-mode=empty] #tools {
 #power-container {
   display: contents;
 }
-#forbidden-container {
-  background-color: #fff6d6;
-  color: #1b2d5b;
-  text-align: center;
-  height: 0;
-  visibility: collapse;
-}
-body.forbidden #forbidden-container {
-  height: unset;
-  visibility: unset;
-  padding: 10px;
-}
 
 body[data-mode="prepare"] #download-all,
 body[data-mode="download"] #download-all,

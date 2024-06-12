@@ -1,17 +1,10 @@
-/* global network */
-
-self.importScripts('network/core.js');
-self.importScripts('network/icon.js');
-self.importScripts('context.js');
-self.importScripts('/plugins/blob-detector/core.js');
-
 /* extra objects */
 const extra = {};
 
 const open = async (tab, extra = []) => {
-  const win = await chrome.windows.getCurrent();
+  const win = await browser.windows.getCurrent();
 
-  chrome.storage.local.get({
+  browser.storage.local.get({
     width: 800,
     height: 500 // for Windows we need this
   }, prefs => {
@@ -26,7 +19,7 @@ const open = async (tab, extra = []) => {
       args.set(key, value);
     }
 
-    chrome.windows.create({
+    browser.windows.create({
       url: '/data/job/index.html?' + args.toString(),
       width: prefs.width,
       height: prefs.height,
@@ -36,23 +29,23 @@ const open = async (tab, extra = []) => {
     });
   });
 };
-chrome.action.onClicked.addListener(tab => open(tab));
-chrome.action.setBadgeBackgroundColor({
+browser.browserAction.onClicked.addListener(tab => open(tab));
+browser.browserAction.setBadgeBackgroundColor({
   color: '#666666'
 });
 
 const badge = (n, tabId) => {
   if (n) {
-    chrome.action.setIcon({
+    browser.browserAction.setIcon({
       tabId: tabId,
       path: {
-        '16': '/data/icons/active/16.png',
-        '32': '/data/icons/active/32.png',
-        '48': '/data/icons/active/48.png'
+        '16': "/data/icons/active/download.svg",
+        '32': "/data/icons/active/download.svg",
+        '48': "/data/icons/active/download.svg"
       }
     });
 
-    chrome.action.setBadgeText({
+    browser.browserAction.setBadgeText({
       tabId: tabId,
       text: new Intl.NumberFormat('en-US', {
         notation: 'compact',
@@ -61,15 +54,15 @@ const badge = (n, tabId) => {
     });
   }
   else {
-    chrome.action.setIcon({
+    browser.browserAction.setIcon({
       tabId: tabId,
       path: {
-        '16': '/data/icons/16.png',
-        '32': '/data/icons/32.png',
-        '48': '/data/icons/48.png'
+        '16': "/data/icons/download_off.svg",
+        '32': "/data/icons/download_off.svg",
+        '48': "/data/icons/download_off.svg"
       }
     });
-    chrome.action.setBadgeText({
+    browser.browserAction.setBadgeText({
       tabId: tabId,
       text: ''
     });
@@ -89,7 +82,7 @@ const observe = d => {
     return;
   }
 
-  chrome.scripting.executeScript({
+  browser.scripting.executeScript({
     target: {
       tabId: d.tabId
     },
@@ -130,22 +123,22 @@ observe.mime = d => {
 };
 
 /* clear old list on remove */
-chrome.tabs.onRemoved.addListener(tabId => {
+browser.tabs.onRemoved.addListener(tabId => {
   // clear rules
-  chrome.declarativeNetRequest.updateSessionRules({
+  browser.declarativeNetRequest.updateSessionRules({
     removeRuleIds: [tabId]
   });
 });
 
 /* clear old list on reload */
-// chrome.tabs.onUpdated.addListener((tabId, info) => {
+// browser.tabs.onUpdated.addListener((tabId, info) => {
 //   if (info.status === 'loading') {
 //     badge(0, tabId);
 //   }
 // });
 
 // media
-chrome.webRequest.onHeadersReceived.addListener(observe, {
+browser.webRequest.onHeadersReceived.addListener(observe, {
   urls: ['*://*/*'],
   types: ['media']
 }, ['responseHeaders']);
@@ -156,7 +149,7 @@ network.types({
 }).then(types => {
   const cloned = navigator.userAgent.includes('Firefox') ? d => observe(d) : observe;
 
-  chrome.webRequest.onHeadersReceived.addListener(cloned, {
+  browser.webRequest.onHeadersReceived.addListener(cloned, {
     urls: types.map(s => '*://*/*.' + s + '*'),
     types: ['xmlhttprequest']
   }, ['responseHeaders']);
@@ -171,7 +164,7 @@ network.types({
 }).then(types => {
   const cloned = navigator.userAgent.includes('Firefox') ? d => observe(d) : observe;
 
-  chrome.webRequest.onHeadersReceived.addListener(cloned, {
+  browser.webRequest.onHeadersReceived.addListener(cloned, {
     urls: types.map(s => '*://*/*.' + s + '*'),
     types: ['xmlhttprequest', 'other']
   }, ['responseHeaders']);
@@ -179,32 +172,32 @@ network.types({
 
 // watch for video and audio mime-types
 {
-  const run = () => chrome.storage.local.get({
+  const run = () => browser.storage.local.get({
     'mime-watch': false
   }, prefs => {
     if (prefs['mime-watch']) {
-      chrome.webRequest.onHeadersReceived.addListener(observe.mime, {
+      browser.webRequest.onHeadersReceived.addListener(observe.mime, {
         urls: ['*://*/*'],
         types: ['xmlhttprequest']
       }, ['responseHeaders']);
     }
     else {
-      chrome.webRequest.onHeadersReceived.removeListener(observe.mime);
+      browser.webRequest.onHeadersReceived.removeListener(observe.mime);
     }
   });
   run();
-  chrome.storage.onChanged.addListener(ps => ps['mime-watch'] && run());
+  browser.storage.onChanged.addListener(ps => ps['mime-watch'] && run());
 }
 
-chrome.runtime.onMessage.addListener((request, sender, response) => {
+browser.runtime.onMessage.addListener((request, sender, response) => {
   if (request.method === 'release-awake-if-possible') {
-    if (chrome.power) {
-      chrome.runtime.sendMessage({
+    if (browser.power) {
+      browser.runtime.sendMessage({
         method: 'any-active'
       }, r => {
-        chrome.runtime.lastError;
+        browser.runtime.lastError;
         if (r !== true) {
-          chrome.power.releaseKeepAwake();
+          browser.power.releaseKeepAwake();
         }
       });
     }
@@ -232,7 +225,7 @@ chrome.runtime.onMessage.addListener((request, sender, response) => {
       }
     }
   };
-  chrome.runtime.onStartup.addListener(once);
+  browser.runtime.onStartup.addListener(once);
 }
 
 /* delete all old indexedDB databases left from "v2" version */
@@ -243,14 +236,14 @@ chrome.runtime.onMessage.addListener((request, sender, response) => {
     }
   });
   if (indexedDB.databases) {
-    chrome.runtime.onInstalled.addListener(once);
-    chrome.runtime.onStartup.addListener(once);
+    browser.runtime.onInstalled.addListener(once);
+    browser.runtime.onStartup.addListener(once);
   }
 }
 
 /* FAQs & Feedback */
 {
-  const {management, runtime: {onInstalled, setUninstallURL, getManifest}, storage, tabs} = chrome;
+  const {management, runtime: {onInstalled, setUninstallURL, getManifest}, storage, tabs} = browser;
   if (navigator.webdriver !== true) {
     const page = getManifest().homepage_url;
     const {name, version} = getManifest();

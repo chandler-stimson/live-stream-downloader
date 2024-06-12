@@ -3,27 +3,27 @@
 /* context menu */
 {
   const once = () => {
-    network.types({core: true, extra: true}).then(types => chrome.contextMenus.create({
+    network.types({core: true, extra: true}).then(types => browser.contextMenus.create({
       title: 'Download with Live Stream Downloader',
       id: 'download-link',
       contexts: ['link'],
-      targetUrlPatterns: types.map(s => '*://*/*.' + s + '*')
+      targetUrlPatterns: types.map(s => '*://*/*.' + s + '*'),
     }));
-    chrome.contextMenus.create({
+    browser.contextMenus.create({
       title: 'Download with Live Stream Downloader',
       id: 'download-media',
-      contexts: ['audio', 'video']
+      contexts: ['audio', 'video'],
     });
-    chrome.contextMenus.create({
+    browser.contextMenus.create({
       title: 'Extract Links',
       id: 'extract-links',
-      contexts: ['selection']
+      contexts: ['selection'],
     });
-    chrome.contextMenus.create({
+    browser.contextMenus.create({
       title: 'Clear Detected Media List',
       id: 'clear',
-      contexts: ['action'],
-      documentUrlPatterns: ['*://*/*']
+      contexts: ['browser_action'],
+      documentUrlPatterns: ['*://*/*'],
     });
   };
   if (/Firefox/.test(navigator.userAgent)) {
@@ -32,12 +32,12 @@
     });
   }
   else {
-    chrome.runtime.onInstalled.addListener(once);
+    browser.runtime.onInstalled.addListener(once);
   }
 }
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+browser.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'clear') {
-    chrome.scripting.executeScript({
+    browser.scripting.executeScript({
       target: {
         tabId: tab.id
       },
@@ -48,7 +48,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       }
     }).catch(() => {});
 
-    chrome.action.setIcon({
+    browser.browserAction.setIcon({
       tabId: tab.id,
       path: {
         '16': '/data/icons/16.png',
@@ -56,7 +56,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         '48': '/data/icons/48.png'
       }
     });
-    chrome.action.setBadgeText({
+    browser.browserAction.setBadgeText({
       tabId: tab.id,
       text: ''
     });
@@ -74,7 +74,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     }]);
   }
   else if (info.menuItemId === 'extract-links') {
-    const next = () => chrome.scripting.executeScript({
+    const next = () => browser.scripting.executeScript({
       target: {
         tabId: tab.id
       },
@@ -119,7 +119,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       next();
     }
     else {
-      chrome.permissions.request({
+      browser.permissions.request({
         permissions: ['scripting']
       }, granted => {
         if (granted) {

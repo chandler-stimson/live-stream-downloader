@@ -1,7 +1,7 @@
 {
-  "manifest_version": 3,
+  "manifest_version": 2,
   "version": "0.4.7.1",
-  "name": "Live Stream Downloader",
+  "name": "Live Stream Downloader Unleashed!!",
   "description": "__MSG_description__",
   "default_locale": "en",
   "permissions": [
@@ -9,14 +9,7 @@
     "contextMenus",
     "webRequest",
     "declarativeNetRequestWithHostAccess",
-    "declarativeContent",
     "scripting",
-    "alarms"
-  ],
-  "optional_permissions": [
-    "power"
-  ],
-  "host_permissions": [
     "*://*/*.flv*",
     "*://*/*.avi*",
     "*://*/*.wmv*",
@@ -28,23 +21,28 @@
     "*://*/*.aac*",
     "*://*/*.ogg*",
     "*://*/*.wma*",
-    "*://*/*.m3u8*"
+    "*://*/*.m3u8*",
+    "unlimitedStorage"
   ],
-  "homepage_url": "https://webextension.org/listing/hls-downloader.html",
+  "optional_permissions": [],
+  "homepage_url": "https://github.com/helloyanis/live-stream-downloader-unleashed",
   "background": {
-    "service_worker": "worker.js"
+    "scripts": [
+      "network/core.js",
+      "network/icon.js",
+      "context.js",
+      "plugins/blob-detector/core.js",
+      "worker.js"
+    ]
   },
   "icons": {
-    "16": "/data/icons/16.png",
-    "32": "/data/icons/32.png",
-    "38": "/data/icons/38.png",
-    "48": "/data/icons/48.png",
-    "64": "/data/icons/64.png",
-    "128": "/data/icons/128.png",
-    "256": "/data/icons/256.png",
-    "512": "/data/icons/512.png"
+      "96": "/data/icons/download_off.svg",
+      "128": "/data/icons/download_off.svg"
   },
-  "action": {
+    
+  
+  "browser_action": {
     "default_title": "Download HLS Streams"
   }
+
 }

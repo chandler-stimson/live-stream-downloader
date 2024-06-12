@@ -9,7 +9,7 @@ const net = {
       return;
     }
 
-    const [tab] = await new Promise(resolve => chrome.tabs.query({
+    const [tab] = await new Promise(resolve => browser.tabs.query({
       active: true,
       currentWindow: true
     }, resolve));
@@ -26,7 +26,7 @@ const net = {
       'header': 'referer',
       'value': initiator
     }];
-    await chrome.declarativeNetRequest.updateSessionRules({
+    await browser.declarativeNetRequest.updateSessionRules({
       removeRuleIds: [cId],
       addRules: [{
         'id': cId,
@@ -42,7 +42,7 @@ const net = {
   },
   remove() {
     if (net.id) {
-      return chrome.declarativeNetRequest.updateSessionRules({
+      return browser.declarativeNetRequest.updateSessionRules({
         removeRuleIds: [net.id]
       });
     }

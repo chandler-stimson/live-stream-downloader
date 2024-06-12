@@ -1,5 +1,5 @@
 # live-stream-downloader
-Download M3U8 live streams to the local disk. This is a fork of the original [live-stream-downloader](
+Download M3U8 live streams to the local disk. This is a fork of the original [live-stream-downloader](https://webextension.org/listing/hls-downloader.html) extension.
 
 #### What this fork changes
 - Removed blocklist, download videos and streams from any website!

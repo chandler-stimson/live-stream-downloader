@@ -154,7 +154,7 @@ body:not([data-mode=empty]) #intro {
   margin: 0;
   display: block;
   overflow: auto;
-  white-space: pre;
+  white-space: pre-line;
   max-height: 50vh;
 }
 #prompt > form {
@@ -178,6 +178,9 @@ body:not([data-mode=empty]) #intro {
   box-sizing: border-box;
 }
 #prompt [name=value]:not([required]) {
+  display: none;
+}
+#prompt [value=extra]:empty {
   display: none;
 }
 

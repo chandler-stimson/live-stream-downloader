@@ -2,11 +2,19 @@
 
 /*
   http://127.0.0.1:8000/example/sample/unencrypted.m3u8
-  https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8
-  https://bitdash-a.akamaihd.net/content/MI201109210084_1/m3u8s/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8
-  http://demo.theoplayer.com/drm-aes-protection-128-encryption
-  https://anime.anidub.life/anime/full/11270-devushki-poni-enkoma-umayon-01-iz-13.html
-  https://soundcloud.com/nba-youngboy/youngboy-never-broke-again
+  aHR0cHM6Ly9iaXRkYXNoLWEuYWthbWFpaGQubmV0L2NvbnRlbnQvc2ludGVsL2hscy9wbGF5bGlzdC5tM3U4
+  aHR0cHM6Ly9iaXRkYXNoLWEuYWthbWFpaGQubmV0L2NvbnRlbnQvTUkyMDExMDkyMTAwODRfMS9tM3U4cy9mMDhlODBkYS1iZjFkLTRlM2QtODg5OS1mMGY2MTU1ZjZlZmEubTN1OA==
+  aHR0cDovL2RlbW8udGhlb3BsYXllci5jb20vZHJtLWFlcy1wcm90ZWN0aW9uLTEyOC1lbmNyeXB0aW9u
+  aHR0cHM6Ly9hbmltZS5hbmlkdWIubGlmZS9hbmltZS9mdWxsLzExMjcwLWRldnVzaGtpLXBvbmktZW5rb21hLXVtYXlvbi0wMS1pei0xMy5odG1s
+  aHR0cHM6Ly9zb3VuZGNsb3VkLmNvbS9uYmEteW91bmdib3kveW91bmdib3ktbmV2ZXItYnJva2UtYWdhaW4=
+
+  Encrypted with discontinuity and audio and subtitle media groups
+    aHR0cHM6Ly93d3cuc2JzLmNvbS5hdS9vbmRlbWFuZC93YXRjaC85MTUxNzAzNzE4MzQ=
+
+  https://raw.githubusercontent.com/ooyala/m3u8/master/sample-playlists/media-playlist-with-discontinuity.m3u8
+
+  Encrypted
+  https://www.radiantmediaplayer.com/media/rmp-segment/bbb-abr-aes/playlist.m3u8
 */
 
 const args = new URLSearchParams(location.search);
@@ -54,6 +62,7 @@ self.prompt = (msg, buttons = {
     const root = document.getElementById('prompt');
     self.prompt.cache.push({resolve, reject});
 
+
     if (root.open === false) {
       root.querySelector('p').textContent = msg;
       root.dataset.mode = confirm ? 'confirm' : 'prompt';
@@ -64,26 +73,38 @@ self.prompt = (msg, buttons = {
       root.querySelector('[name=value]').type = isNaN(buttons.value) ? 'text' : 'number';
       root.querySelector('[value=default]').textContent = buttons.ok;
       root.querySelector('[value=cancel]').textContent = buttons.no;
+      [...root.querySelectorAll('[value=extra]')].forEach((e, n) => {
+        e.textContent = buttons.extra ? buttons.extra[n] : '';
+      });
+
+      let value = Error('USER_ABORT');
 
       root.onsubmit = e => {
         e.preventDefault();
-        root.close();
         if (e.submitter.value === 'default') {
-          const value = root.querySelector('[name=value]').value;
+          value = root.querySelector('[name=value]').value;
+          root.close();
+        }
+        else if (e.submitter.value === 'extra') {
+          value = e.submitter.dataset.id;
+          root.close();
+        }
+        else {
+          root.close();
+        }
+      };
+      root.onclose = () => {
+        if (value instanceof Error) {
+          for (const {reject} of self.prompt.cache) {
+            reject(value);
+          }
+        }
+        else {
           for (const {resolve} of self.prompt.cache) {
             resolve(value);
           }
         }
-        else {
-          root.onclose();
-        }
-        self.prompt.cache = [];
-      };
-      root.onclose = () => {
-        const e = Error('USER_ABORT');
-        for (const {reject} of self.prompt.cache) {
-          reject(e);
-        }
+        self.prompt.cache.length = 0;
       };
 
       root.showModal();
@@ -105,7 +126,7 @@ const response = o => {
 };
 const build = async os => {
   const prefs = await storage.get({
-    'filename': '[meta.name]' // [meta.name], [title], [hostname]
+    'filename': '[meta.name]' // [meta.name], [title], [hostname], [q:query|method|default-value]
   });
   let hostname = 'NA';
   try {
@@ -113,6 +134,55 @@ const build = async os => {
     hostname = o.hostname;
   }
   catch (e) {}
+
+  // extract "q:" matches from the page
+  if (prefs.filename.includes('[q:')) {
+    const regex = /\[q:((?:\[[^\]]*?\]|.)*?)\]/g;
+
+    const matches = [];
+    let match;
+
+    while ((match = regex.exec(prefs.filename)) !== null) {
+      matches.push(match[1]);
+    }
+
+    if (matches.length) {
+      await chrome.scripting.executeScript({
+        target: {
+          tabId
+        },
+        func: matches => {
+          const results = [];
+          for (const match of matches) {
+            const [query, method, defaultValue] = match.split('|');
+            let value = '';
+            try {
+              const e = document.querySelector(query);
+              if (method) {
+                value = e[method] || e.getAttribute(method);
+              }
+              else {
+                value = e.textContent;
+              }
+            }
+            catch (e) {}
+            value = value || (defaultValue || '');
+
+            results.push({
+              match,
+              value
+            });
+          }
+          return results;
+        },
+        args: [matches]
+      }).then(r => {
+        for (const {match, value} of r[0].result) {
+          prefs.filename = prefs.filename.replace('[q:' + match + ']', value);
+        }
+      }).catch(e => console.info('Cannot run query search on page', e));
+    }
+  }
 
   const t = document.getElementById('entry');
   let naming = 0;
@@ -210,13 +280,11 @@ Promise.all([
     target: {
       tabId
     },
-    func: types => performance.getEntries()
+    func: types => performance.getEntriesByType('resource')
       .filter(o => ['video', 'xmlhttprequest'].includes(o.initiatorType))
       .filter(o => {
         for (const type of types) {
           if (o.name.includes('.' + type)) {
-            console.log(o.name, type);
-
             return true;
           }
         }
@@ -248,10 +316,11 @@ Promise.all([
       console.error(e);
     }
   }
-  for (const o of os2) {
+
+  for (const o of (os2 || [])) {
     os.set(o.url, o);
   }
-  for (const o of os1) { // overwrite os2 which does not include details
+  for (const o of (os1 || [])) { // overwrite os2 which does not include details
     os.set(o.url, o);
   }
 
@@ -269,17 +338,17 @@ Promise.all([
   const items = [...os.values()];
 
   // m3u8 on top
-  items.sort((a, b) => {
-    const ah = a.url.includes('m3u8');
-    const bh = b.url.includes('m3u8');
-    if (ah && bh === false) {
-      return -1;
-    }
-    if (bh && ah === false) {
-      return 1;
-    }
-    return a.timeStamp - b.timeStamp;
-  });
+  // items.sort((a, b) => {
+  //   const ah = a.url.includes('m3u8');
+  //   const bh = b.url.includes('m3u8');
+  //   if (ah && bh === false) {
+  //     return -1;
+  //   }
+  //   if (bh && ah === false) {
+  //     return 1;
+  //   }
+  //   return a.timeStamp - b.timeStamp;
+  // });
 
   build(items);
 
@@ -292,13 +361,67 @@ Promise.all([
 
 const error = e => {
   console.warn(e);
-  document.title = e.message;
+  document.title = e?.message;
   document.body.dataset.mode = 'error';
 };
 
-const download = async (segments, file) => {
+const download = async (segments, file, codec = '') => {
   document.body.dataset.mode = 'download';
   progress.value = 0;
+
+  // remove discontinuity
+  const timelines = {};
+  for (const segment of segments) {
+    timelines[segment.timeline] = timelines[segment.timeline] || [];
+    timelines[segment.timeline].push(segment);
+  }
+  const kt = Object.entries(timelines);
+
+  if (kt.length > 1) {
+    const msg = `This M3U8 media file contains different timelines, each usually representing a separate piece of ` +
+      `media (short timelines are often ads). Choose the timeline you want to download. You can repeat the process ` +
+      `to download more timelines later. It's best to download each timeline separately, but you can also download ` +
+      `all segments into one file (though it might not play properly).`;
+
+    // select the longest timeline
+    let value = 0;
+    let m = 0;
+    for (const [id, a] of kt) {
+      if (m < a.length) {
+        value = id;
+        m = a.length;
+      }
+    }
+    const n = await self.prompt(msg + `
+
+${kt.map(([id, a]) => {
+    return id + ' (includes ' + a.length + ' segments)';
+  }).join('\n')}`, {
+      ok: 'Select a Timeline',
+      extra: ['Download Each Separately', 'Ignore Timelines'],
+      no: 'Cancel',
+      value
+    }, true);
+
+    if (n === 'extra-0') {
+      const jobs = [];
+      for (const [timeline, segments] of kt) {
+        const name = file.name.replace(/\.(?=[^.]+$)/, '-' + timeline + '.');
+        jobs.push({name, segments});
+      }
+      try {
+        file.remove();
+      }
+      catch (e) {}
+      return self.batch(jobs, codec);
+    }
+    else if (n !== 'extra-1') {
+      segments = timelines[n];
+    }
+  }
+  if (Array.isArray(segments) === false) {
+    throw Error('UNKNOWN_TIMELINE');
+  }
 
   // remove duplicated segments (e.g. video/fMP4)
   const links = [];
@@ -328,34 +451,38 @@ const download = async (segments, file) => {
     total: segments.length
   };
 
-  const n = new class extends MyGet {
-    // monitor progress
-    monitor(...args) {
-      stat.current = Math.max(stat.current, args[1]);
-      stat.fetched += args[2];
+  const n = new MyGet();
+  n.meta['base-codec'] = codec;
 
-      return super.monitor(...args);
+  // stats
+  n.monitor = new Proxy(n.monitor, {
+    apply(target, self, args) {
+      const [segment, position, chunk, offset] = args;
+      stat.current = Math.max(stat.current, position);
+      stat.fetched += chunk.byteLength;
+
+      return Reflect.apply(target, self, args);
     }
-  };
+  });
+
   Object.assign(n.options, await storage.get({
     'threads': MyGet.OPTIONS.threads,
-    'error-recovery': MyGet.OPTIONS['error-recovery'],
     'thread-timeout': MyGet.OPTIONS['thread-timeout']
   }));
 
   // instead of breaking, let the user retry
-  n.options['error-handler'] = (e, source, segment) => {
+  n.options['error-handler'] = (e, source, href) => {
     return self.prompt(`Connection to the server is broken (${source} -> ${e.message})!
 
 Use the box below to update the URL`, {
       ok: 'Retry',
       no: 'Cancel',
-      value: segment.uri
+      value: href
     }, true).then(v => {
       if (v) {
         try {
           new URL(v);
-          segment.uri = v;
+          return v;
         }
         catch (e) {
           console.info('URL replacement ignored', e);
@@ -396,8 +523,9 @@ Use the box below to update the URL`, {
 
   try {
     // attach disk writer
-    n.attach(file);
+    await n.attach(file);
 
+    // download
     await n.fetch(segments);
     clearInterval(timer);
 
@@ -433,7 +561,7 @@ Use the box below to update the URL`, {
   clearInterval(timer);
 };
 
-const parser = async (manifest, file, href) => {
+const parser = async (manifest, file, href, codec) => {
   // data uri
   if (manifest.startsWith('data:')) {
     manifest = await fetch(manifest).then(r => r.text());
@@ -477,7 +605,31 @@ const parser = async (manifest, file, href) => {
   p.push(manifest);
   p.end();
 
+  console.info('Manifest', p);
+
   const playlists = p.manifest.playlists || [];
+  // add media groups
+  if (p.manifest.mediaGroups) {
+    for (const [type, group] of Object.entries(p.manifest.mediaGroups)) {
+      try {
+        Object.values(group).forEach(g => {
+          for (const [lang, o] of Object.entries(g)) {
+            playlists.push({
+              ...o,
+              group: {
+                lang,
+                type
+              }
+            });
+          }
+        });
+      }
+      catch (e) {
+        console.error('cannot append a media group', e);
+      }
+    }
+  }
+
   if (playlists.length) {
     const {quality} = await storage.get({
       quality: 'selector'
@@ -486,6 +638,17 @@ const parser = async (manifest, file, href) => {
     let n = 0; // highest
     // sort based on highest quality
     playlists.sort((a, b) => {
+      // dealing with groups
+      if (a.group && !b.group) {
+        return 1;
+      }
+      if (b.group && !a.group) {
+        return -1;
+      }
+      if (a.group && b.group) {
+        return b.group.type.localeCompare(a.group.type);
+      }
+      //
       try {
         return b.attributes.RESOLUTION.width - a.attributes.RESOLUTION.width;
       }
@@ -496,12 +659,35 @@ const parser = async (manifest, file, href) => {
     if (quality === 'selector') {
       const msgs = [];
 
+      const trim = (str = '', trimSize = 40) => {
+        if (str.length <= trimSize) {
+          return str;
+        }
+
+        const start = str.substring(0, trimSize / 2 - 2); // -2 to account for the ellipsis
+        const end = str.substring(str.length - trimSize / 2 + 1); // +1 to keep the ellipsis at the end
+
+        return start + '...' + end;
+      };
+
       for (const playlist of playlists) {
         if (playlist.attributes && playlist.attributes.RESOLUTION) {
-          msgs.push(playlist.attributes.RESOLUTION.width + ' × ' + playlist.attributes.RESOLUTION.height + ' -> ' + playlist.uri.substr(-60));
+          msgs.push(
+            'Video [' +
+            playlist.attributes.RESOLUTION.width + ' × ' +
+            playlist.attributes.RESOLUTION.height + '] -> ' +
+            trim(playlist.uri)
+          );
+        }
+        else if (playlist.group) {
+          msgs.push(
+            playlist.group.type.toLowerCase() + ' [' +
+            playlist.group.lang.toLowerCase() + '] -> ' +
+            trim(playlist.uri, 30)
+          );
         }
         else {
-          msgs.push(playlist.uri.substr(-30));
+          msgs.push(trim(playlist.uri));
         }
       }
       n = (playlists.length > 1 ? await prompt('Select one stream:\n\n' + msgs.map((m, n) => n + '. ' + m).join('\n'), {
@@ -511,14 +697,17 @@ const parser = async (manifest, file, href) => {
       }, true) : 0);
     }
     else if (quality === 'lowest') {
-      n = playlists.length - 1;
+      // remove media groups first
+      // n = playlists.length - 1;
+      n = playlists.filter(o => !o.group).length - 1;
     }
 
     const v = playlists[Number(n)];
     if (v) {
       try {
+        const codec = v.attributes?.CODECS;
         const o = new URL(v.uri, href || undefined);
-        return parser(o.href, file);
+        return parser(o.href, file, undefined, codec);
       }
       catch (e) {
         return parser(v.uri, file, href);
@@ -542,7 +731,7 @@ const parser = async (manifest, file, href) => {
     return download(segments.map(o => {
       o.base = href;
       return o;
-    }), file);
+    }), file, codec);
   }
   else {
     throw Error('No_SEGMENT_DETECTED');

@@ -39,6 +39,9 @@
       <input name="value" type="text" autofocus>
       <menu>
         <button value="default" type="submit">Confirm</button>
+        <button value="extra" data-id="extra-0"></button>
+        <button value="extra" data-id="extra-1"></button>
+        <button value="extra" data-id="extra-2"></button>
         <button value="cancel">Cancel</button>
       </menu>
     </form>
@@ -60,9 +63,13 @@
       <div>
         <div>
           <label for="filename">Filename <a data-href="faq10" target="_blank">Format</a></label>
-          <input type="text" id="filename" title="Filename format:
+          <input type="text" id="filename" title="Filename format
 
-Acceptable Keywords: [meta.name] (default), [title], [hostname]">
+Acceptable Keywords:
+  [meta.name] (default)
+  [title]
+  [hostname]
+  [q:query|method|default-value]">
           <label for="threads">Number of Threads (1-5)</label>
           <input type="number" min="1" max="5" value="3" id="threads" title="Download jobs with multiple threads to increase speed">
           <div id="power-container">
@@ -75,8 +82,6 @@ Acceptable Keywords: [meta.name] (default), [title], [hostname]">
             <a data-href="faq12" target="_blank">Improved Media Detection</a>
           </label>
           <input type="checkbox" id="mime-watch">
-          <label for="error-recovery">Do not Download Duplicated Segments</label>
-          <input type="checkbox" id="error-recovery">
           <label for="online-resolve-name">Try to Resolve Filename from Server</label>
           <input type="checkbox" id="online-resolve-name">
           <span class="sep"></span>
@@ -105,17 +110,21 @@ Acceptable Keywords: [meta.name] (default), [title], [hostname]">
   <!-- MyGet -->
   <script type="text/javascript" src="mget/mget.js"></script>
   <script type="text/javascript" src="mget/plugins/static.js"></script>
-  <script type="text/javascript" src="mget/plugins/cache.js"></script>
   <script type="text/javascript" src="mget/plugins/error.js"></script>
+  <script type="text/javascript" src="mget/plugins/cache.js"></script>
   <script type="text/javascript" src="mget/plugins/disk.js"></script>
   <script type="text/javascript" src="mget/plugins/decrypt.js"></script>
   <!-- M3U8 Parser -->
-  <script type="text/javascript" src="m3u8-parser.js"></script>
+  <script type="text/javascript" src="externals/m3u8-parser.js"></script>
+  <!-- MP4Box -->
+  <!-- <script type="text/javascript" src="externals/mp4box.all.js"></script> -->
   <!-- Page -->
   <script type="text/javascript" src="file-picker-polyfill.js"></script>
   <script type="text/javascript" src="/network/core.js"></script>
   <script type="text/javascript" src="index.js"></script>
   <!-- Plugins -->
+  <!-- <script type="text/javascript" src="plugins/codec.js"></script> -->
+  <!-- <script type="text/javascript" src="plugins/preview.js"></script> -->
   <script type="text/javascript" src="plugins/unload.js"></script>
   <script type="text/javascript" src="plugins/threads.js"></script>
   <script type="text/javascript" src="plugins/quality.js"></script>
@@ -125,8 +134,8 @@ Acceptable Keywords: [meta.name] (default), [title], [hostname]">
   <script type="text/javascript" src="plugins/footer.js"></script>
   <script type="text/javascript" src="plugins/filename.js"></script>
   <script type="text/javascript" src="plugins/tools.js"></script>
+  <script type="text/javascript" src="plugins/batch.js"></script>
   <script type="text/javascript" src="plugins/links.js"></script>
   <script type="text/javascript" src="plugins/mime.js"></script>
-  <script type="text/javascript" src="plugins/error-recovery.js"></script>
 </body>
 </html>

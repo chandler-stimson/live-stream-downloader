@@ -55,10 +55,6 @@ const MIME_TYPES = {
 };
 
 class SGet extends MyGet {
-  constructor(...args) {
-    super(...args);
-    this.meta = {}; // name, ext, mime
-  }
   /* guess filename and extension */
   static guess(resp, meta = {}) {
     const href = resp.url.split('#')[0].split('?')[0];

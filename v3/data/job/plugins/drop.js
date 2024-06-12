@@ -14,9 +14,23 @@ const extract = (code = '') => {
     }
   }
   catch (e) {}
+
+  const parts = code.split(/\s+/);
+  parts.forEach(word => {
+    try {
+      const url = new URL(word);
+      links.add(url.href);
+    }
+    catch (e) {}
+  });
+
+  // Inaccurate and most likely truncated links. Only add those that are not extracted with the native method
   const r = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])/ig;
+  const alreadyExtracted = [...links.keys()];
   for (const link of (code.match(r) || [])) {
-    links.add(link);
+    if (alreadyExtracted.some(a => a.startsWith(link)) === false) {
+      links.add(link);
+    }
   }
 
   return links;

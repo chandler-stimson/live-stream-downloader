@@ -69,33 +69,13 @@ class DGet extends MyGet {
   async flush(segment, position) {
     if (segment.key) {
       const {href} = new URL(segment.key.uri, segment.base || segment.uri);
-      let r;
-
-      // try to get the key multiple times
-      for (let n = 0; ; n += 1) {
-        try {
-          r = await this.native(href, {
-            'credentials': 'include'
-          }, true);
-          if (r.ok) {
-            break;
-          }
-        }
-        catch (e) {
-          console.info('key is broken', e.message);
-          if (this.controller.signal.aborted) {
-            throw e;
-          }
-          if (n > 10) {
-            if (this.options['error-handler']) {
-              await this.options['error-handler'](e, 'BROKEN_KEY');
-            }
-            else {
-              throw e;
-            }
-          }
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
+      const r = await this.native(href, {
+        'credentials': 'include'
+      }, {
+        save: true
+      });
+      if (!r.ok) {
+        throw Error('BROKEN_KEY_STATUS_' + r.status);
       }
 
       const value = await r.arrayBuffer();
@@ -105,13 +85,17 @@ class DGet extends MyGet {
       delete this['basic-cache'][position];
       const encrypted = await (new Blob(chunks)).arrayBuffer();
 
+      const iv = segment.key?.iv?.buffer || new ArrayBuffer(16);
+
       const decrypted = await crypto.subtle.importKey('raw', value, {
         name: 'AES-CBC',
         length: 128
-      }, false, ['decrypt']).then(importedKey => crypto.subtle.decrypt({
-        name: 'AES-CBC',
-        iv: new ArrayBuffer(16)
-      }, importedKey, encrypted));
+      }, false, ['decrypt']).then(importedKey => {
+        return crypto.subtle.decrypt({
+          name: 'AES-CBC',
+          iv
+        }, importedKey, encrypted);
+      });
 
       // write to the original cache
       const stream = new self.MemoryWriter(position, offsets[0], this.cache);

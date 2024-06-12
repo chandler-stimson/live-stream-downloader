@@ -13,10 +13,11 @@ const open = async (tab, extra = []) => {
 
   chrome.storage.local.get({
     width: 800,
-    height: 500, // for Windows we need this
-    left: win.left + Math.round((win.width - 800) / 2),
-    top: win.top + Math.round((win.height - 500) / 2)
+    height: 500 // for Windows we need this
   }, prefs => {
+    const left = win.left + Math.round((win.width - 800) / 2);
+    const top = win.top + Math.round((win.height - 500) / 2);
+
     const args = new URLSearchParams();
     args.set('tabId', tab.id);
     args.set('title', tab.title || '');
@@ -29,8 +30,8 @@ const open = async (tab, extra = []) => {
       url: '/data/job/index.html?' + args.toString(),
       width: prefs.width,
       height: prefs.height,
-      left: prefs.left,
-      top: prefs.top,
+      left,
+      top,
       type: 'popup'
     });
   });
@@ -77,7 +78,7 @@ const badge = (n, tabId) => {
 
 const observe = d => {
   // hard-coded excludes
-  if (d.initiator.startsWith('https://www.youtube.com')) {
+  if (d.initiator && d.initiator.startsWith('https://www.youtube.com')) {
     return;
   }
 

@@ -32,11 +32,6 @@ else {
     }
   });
 
-  events.before.add(() => {
-    if (browser.power) {
-      browser.power.requestKeepAwake('display');
-    }
-  });
   events.after.add(() => browser.runtime.sendMessage({
     method: 'release-awake-if-possible'
   }, () => browser.runtime.lastError));

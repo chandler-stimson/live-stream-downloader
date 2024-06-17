@@ -190,19 +190,7 @@ network.types({
 }
 
 browser.runtime.onMessage.addListener((request, sender, response) => {
-  if (request.method === 'release-awake-if-possible') {
-    if (browser.power) {
-      browser.runtime.sendMessage({
-        method: 'any-active'
-      }, r => {
-        browser.runtime.lastError;
-        if (r !== true) {
-          browser.power.releaseKeepAwake();
-        }
-      });
-    }
-  }
-  else if (request.method === 'get-extra') {
+  if (request.method === 'get-extra') {
     response(extra[request.tabId] || []);
     delete extra[request.tabId];
   }
@@ -226,19 +214,6 @@ browser.runtime.onMessage.addListener((request, sender, response) => {
     }
   };
   browser.runtime.onStartup.addListener(once);
-}
-
-/* delete all old indexedDB databases left from "v2" version */
-{
-  const once = () => indexedDB.databases().then(dbs => {
-    for (const db of dbs) {
-      indexedDB.deleteDatabase(db.Name);
-    }
-  });
-  if (indexedDB.databases) {
-    browser.runtime.onInstalled.addListener(once);
-    browser.runtime.onStartup.addListener(once);
-  }
 }
 
 /* FAQs & Feedback */

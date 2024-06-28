@@ -79,6 +79,9 @@ class EGet extends MyGet {
     for (;;) {
       try {
         response = await native();
+        if (!response.ok) {
+          throw Error('STATUS_' + response.status);
+        }
         break;
       }
       catch (e) {
@@ -147,6 +150,9 @@ class EGet extends MyGet {
             offset = 0;
 
             response = await native();
+            if (!response.ok) {
+              throw Error('STATUS_' + response.status);
+            }
             reader = response.body.getReader();
 
             pump();

@@ -10,10 +10,8 @@
     document.documentElement.append(port);
   }
 
-  self.Blob = class extends self.Blob {
-    constructor(...args) {
-      super(...args);
-
+  self.Blob = new Proxy(self.Blob, {
+    construct(Target, args) {
       try {
         const type = args[1]?.type;
         if (type === 'application/vnd.apple.mpegurl') {
@@ -28,6 +26,8 @@
       catch (e) {
         console.info('cannot extract M3U8 content', e);
       }
+
+      return new Target(...args);
     }
-  };
+  });
 }

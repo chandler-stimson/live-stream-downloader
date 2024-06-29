@@ -135,19 +135,23 @@ class EGet extends MyGet {
           if (!active) {
             return;
           }
-          if (extra.rangable === false) {
-            controller.error(Error('BROKEN_PIPE_NOT_RANGABLE'));
-            return;
-          }
           const counter = errors.get(request.url) ?? 0;
           console.info('pipe is broken :: ', e.message, `#${counter}`);
 
-          const range = request.headers.get('Range') || 'bytes=0-';
-          const [start, end] = range.split('=')[1].split('-');
+          const delay = Math.min(20000, options['error-delay'] * counter);
+          await new Promise(resolve => setTimeout(resolve, delay));
 
           try {
-            request.headers.set('Range', 'bytes=' + (Number(start) + offset) + '-' + end);
-            offset = 0;
+            if (offset) {
+              if (response.status !== 206) {
+                throw Error('BROKEN_PIPE_NOT_RANGABLE');
+              }
+
+              const range = request.headers.get('Range') || 'bytes=0-';
+              const [start, end] = range.split('=')[1].split('-');
+              request.headers.set('Range', 'bytes=' + (Number(start) + offset) + '-' + end);
+              offset = 0;
+            }
 
             response = await native();
             if (!response.ok) {
@@ -181,8 +185,6 @@ class EGet extends MyGet {
               }
             }
             else {
-              const delay = Math.min(20000, options['error-delay'] * counter);
-              await new Promise(resolve => setTimeout(resolve, delay));
               recover(e);
             }
           }
@@ -194,12 +196,15 @@ class EGet extends MyGet {
           }
           // timeout
           clearTimeout(timeout.id);
-          timeout.id = setTimeout(() => timeout.controller.abort(), timeout.delay);
+          timeout.id = setTimeout(() => timeout.controller.abort(Error('TIMEOUT')), timeout.delay);
 
           // pump
           return reader.read().then(({done, value}) => {
             if (done) {
-              controller.close();
+              try {
+                controller.close();
+              }
+              catch (e) {}
               return;
             }
             errors.set(request.url, 0);

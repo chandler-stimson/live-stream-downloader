@@ -148,7 +148,7 @@ class MGet {
       start();
     }).catch(e => {
       console.warn(e);
-      this.controller.abort(e?.message || 'Unknown Error');
+      this.controller.abort(Error(e?.message || 'Unknown Error'));
       throw e;
     });
   }
@@ -248,8 +248,10 @@ class MGet {
         throw Error('NO_RANGE_SUPPORT_' + r.status);
       }
       else if (r.ok) {
-        // server supports range; report it to the native fetch with "extra.rangable" to prevent fixing broken pipes
-        const rangable = extra.rangable = size && type === 'bytes' && computable !== 'false';
+        // server supports range
+        const rangable = size && (
+          (type === 'bytes' && computable !== 'false') || r.status === 206
+        );
 
         if (rangable && size > this.options['thread-size']) {
           segment.extraThreads = segment.extraThreads || new Set();
@@ -332,14 +334,15 @@ class MGet {
 
             this.monitor(segment, position, chunk, offset);
           });
+
           return r.body.pipeThrough(monitor).pipeTo(writable).then(() => {
             if (this.sizes.has(position) === false) { // save the extracted size for later use
               console.info('SET_SIZE', position, s);
               this.sizes.set(position, s);
             }
             else if (s !== size) {
-              console.info('INVALID_SIZE', s, size, '[Broken Download]');
-              throw Error('INVALID_SIZE');
+              console.error('PIPE_SIZE_MISMATCH', s, size, '[Download might be Broken]', r.headers.get('Range'), r.headers.get('Content-Range'));
+              throw Error('PIPE_SIZE_MISMATCH');
             }
             this.actives -= 1;
           });

@@ -141,12 +141,9 @@ class EGet extends MyGet {
           const delay = Math.min(20000, options['error-delay'] * counter);
           await new Promise(resolve => setTimeout(resolve, delay));
 
+
           try {
             if (offset) {
-              if (response.status !== 206) {
-                throw Error('BROKEN_PIPE_NOT_RANGABLE');
-              }
-
               const range = request.headers.get('Range') || 'bytes=0-';
               const [start, end] = range.split('=')[1].split('-');
               request.headers.set('Range', 'bytes=' + (Number(start) + offset) + '-' + end);
@@ -157,6 +154,10 @@ class EGet extends MyGet {
             if (!response.ok) {
               throw Error('STATUS_' + response.status);
             }
+            if (offset && response.status !== 206) {
+              throw Error('BROKEN_PIPE_NOT_RANGABLE');
+            }
+
             reader = response.body.getReader();
 
             pump();

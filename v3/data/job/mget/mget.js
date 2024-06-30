@@ -231,7 +231,9 @@ class MGet {
       credentials: 'include'
     }, extra).then(r => {
       const s = Number(r.headers.get('Content-Length'));
-      const size = isNaN(s) ? 0 : Number(s);
+      const encoding = r.headers.get('Content-Encoding');
+      // for gzip, to prevent PIPE_SIZE_MISMATCH;
+      const size = isNaN(s) || encoding === 'gzip' ? 0 : Number(s);
 
       if (r.ok && this.sizes.has(position) === false) {
         if (size) { // only save size if there is a header for it
@@ -341,7 +343,7 @@ class MGet {
               this.sizes.set(position, s);
             }
             else if (s !== size) {
-              console.error('PIPE_SIZE_MISMATCH', s, size, '[Download might be Broken]', r.headers.get('Range'), r.headers.get('Content-Range'));
+              console.error('PIPE_SIZE_MISMATCH', s, size);
               throw Error('PIPE_SIZE_MISMATCH');
             }
             this.actives -= 1;

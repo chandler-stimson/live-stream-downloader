@@ -10,6 +10,8 @@
 
   Encrypted with discontinuity and audio and subtitle media groups
     aHR0cHM6Ly93d3cuc2JzLmNvbS5hdS9vbmRlbWFuZC93YXRjaC85MTUxNzAzNzE4MzQ=
+  Unstable server with lots of 502 errors
+    aHR0cHM6Ly9oYW10YW1vdmllLm5sLyVEOCVBRiVEOCVBNyVEOSU4NiVEOSU4NCVEOSU4OCVEOCVBRi0lRDklODElREIlOEMlRDklODQlRDklODUtJUQ4JUFDJUQ5JTg3JUQ4JUE3JUQ5JTg2LSVEOCVBOCVEOCVBNy0lRDklODUlRDklODYtJUQ4JUE4JUQ4JUIxJUQ5JTgyJUQ4JUI1Lw==
 
   https://raw.githubusercontent.com/ooyala/m3u8/master/sample-playlists/media-playlist-with-discontinuity.m3u8
 

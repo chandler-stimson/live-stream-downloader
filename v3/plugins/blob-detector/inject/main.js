@@ -14,6 +14,7 @@
     construct(Target, args) {
       try {
         const type = args[1]?.type;
+
         if (type === 'application/vnd.apple.mpegurl') {
           port.dispatchEvent(new CustomEvent('media-detected', {
             detail: {

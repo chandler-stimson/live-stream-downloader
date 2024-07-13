@@ -17,6 +17,9 @@
 
   Encrypted
   https://www.radiantmediaplayer.com/media/rmp-segment/bbb-abr-aes/playlist.m3u8
+
+  jwplayer with TXT manifest
+  aHR0cHM6Ly9mdWxsbWF0Y2hzcG9ydHMuY2Mvc3BhaW4tdnMtZnJhbmNlLWZ1bGwtbWF0Y2gtZXVyby0yMDI0Lz90YWI9aGlnaGxpZ2h0cw==
 */
 
 const args = new URLSearchParams(location.search);
@@ -294,15 +297,38 @@ Promise.all([
       .map(o => ({
         initiator: location.href,
         url: o.name,
-        timeStamp: performance.now() + o.startTime,
+        timeStamp: performance.timeOrigin + o.startTime,
         source: 'performance'
       })),
     world: 'MAIN',
     args: [types]
-  }).then(a => a[0].result).catch(() => []))
-]).then(async ([os1, os2]) => {
+  }).then(a => a[0].result).catch(() => [])),
+  // get jwplayer playlist
+  chrome.scripting.executeScript({
+    target: {
+      tabId,
+      allFrames: true
+    },
+    func: () => {
+      const list = [];
+      try {
+        for (const o of self.jwplayer().getPlaylist()) {
+          list.push({
+            initiator: location.href,
+            url: new URL(o.file, location.href).href,
+            timeStamp: performance.timing.domComplete,
+            source: 'jwplayer'
+          });
+        }
+      }
+      catch (e) {
+      }
+      return list;
+    },
+    world: 'MAIN'
+  }).then(a => a.map(o => o.result).flat().filter(a => a)).catch(() => [])
+]).then(async ([os1, os2, os3]) => {
   const os = new Map();
-
   if (args.get('extra') === 'true') {
     try {
       const links = await new Promise(resolve => chrome.runtime.sendMessage({
@@ -319,13 +345,24 @@ Promise.all([
     }
   }
 
-  for (const o of (os2 || [])) {
-    os.set(o.url, o);
+  try {
+    for (const o of (os3 || [])) {
+      os.set(o.url, o);
+    }
   }
-  for (const o of (os1 || [])) { // overwrite os2 which does not include details
-    os.set(o.url, o);
+  catch (e) {}
+  try {
+    for (const o of (os2 || [])) {
+      os.set(o.url, o);
+    }
   }
-
+  catch (e) {}
+  try {
+    for (const o of (os1 || [])) { // overwrite os2 which does not include details
+      os.set(o.url, o);
+    }
+  }
+  catch (e) {}
 
   let forbiddens = 0;
   // remove forbidden links
@@ -817,6 +854,7 @@ document.getElementById('hrefs').onsubmit = async e => {
     }
     else {
       if (
+        div.meta.ext !== 'txt' &&
         div.meta.ext !== 'm3u8' &&
         div.o.url.indexOf('.m3u8') === -1 &&
         div.o.url.indexOf('format=m3u8') === -1

@@ -267,6 +267,7 @@ Promise.all([
     target: {
       tabId
     },
+    injectImmediately: true,
     func: url => {
       self.storage = self.storage || new Map();
 
@@ -285,9 +286,17 @@ Promise.all([
     target: {
       tabId
     },
+    injectImmediately: true,
     func: types => performance.getEntriesByType('resource')
-      .filter(o => ['video', 'xmlhttprequest'].includes(o.initiatorType))
+      .filter(o => o.initiatorType === 'video' ||
+        o.initiatorType === 'other' ||
+        o.initiatorType === 'xmlhttprequest' ||
+        o.contentType?.startsWith('video/') ||
+        o.contentType?.startsWith('audio/'))
       .filter(o => {
+        if (o.contentType?.startsWith('video/') || o.contentType?.startsWith('audio/')) {
+          return true;
+        }
         for (const type of types) {
           if (o.name.includes('.' + type)) {
             return true;
@@ -309,6 +318,7 @@ Promise.all([
       tabId,
       allFrames: true
     },
+    injectImmediately: true,
     func: () => {
       const list = [];
       try {
@@ -321,8 +331,7 @@ Promise.all([
           });
         }
       }
-      catch (e) {
-      }
+      catch (e) {}
       return list;
     },
     world: 'MAIN'

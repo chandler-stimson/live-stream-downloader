@@ -263,7 +263,7 @@ body[data-mode=download] {
 body:not([data-mode=download]) #progress {
   display: none;
 }
-#progress[value=0] {
+#progress[value="0"] {
   display: none;
 }
 

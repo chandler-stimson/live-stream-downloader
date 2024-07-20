@@ -83,9 +83,12 @@ const observe = d => {
   }
 
   // unsupported content types
-  if (d.url.includes('.m3u8') === false && d.responseHeaders.some(({name, value}) => {
-    return name === 'content-type' && value && value.startsWith('text/html');
-  })) {
+  if (
+    d.url.includes('.m3u8') === false &&
+    d.url.includes('.mpd') === false &&
+    d.responseHeaders.some(({name, value}) => {
+      return name === 'content-type' && value && value.startsWith('text/html');
+    })) {
     return;
   }
 
@@ -99,7 +102,7 @@ const observe = d => {
       if (self.storage.size > size) {
         for (const [href] of self.storage) {
           // do not delete important links
-          if (href.includes('.m3u8')) {
+          if (href.includes('.m3u8') || href.includes('.mpd')) {
             continue;
           }
           self.storage.delete(href);

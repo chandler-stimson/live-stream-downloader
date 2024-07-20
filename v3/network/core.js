@@ -13,7 +13,7 @@ const network = {
   const CORE = [
     'flv', 'avi', 'wmv', 'mov', 'mp4', 'webm', 'mkv', // video
     'pcm', 'wav', 'mp3', 'aac', 'ogg', 'wma', // audio
-    'm3u8' // stream
+    'm3u8', 'mpd' // stream
   ];
   const EXTRA = [
     'zip', 'rar', '7z', 'tar.gz',

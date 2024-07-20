@@ -1,4 +1,4 @@
-/* global MyGet, m3u8Parser, network */
+/* global MyGet, m3u8Parser, mpdParser, network */
 
 /*
   http://127.0.0.1:8000/example/sample/unencrypted.m3u8
@@ -20,6 +20,10 @@
 
   jwplayer with TXT manifest
   aHR0cHM6Ly9mdWxsbWF0Y2hzcG9ydHMuY2Mvc3BhaW4tdnMtZnJhbmNlLWZ1bGwtbWF0Y2gtZXVyby0yMDI0Lz90YWI9aGlnaGxpZ2h0cw==
+
+  MPEG-DASH (*.Mpd)  with playlist and resolvedUri
+  https://dash.akamaized.net/dash264/TestCasesIOP33/adapatationSetSwitching/5/manifest.mpd
+  http://ftp.itec.aau.at/datasets/DASHDataset2014/BigBuckBunny/2sec/BigBuckBunny_2s_onDemand_2014_05_09.mpd
 */
 
 const args = new URLSearchParams(location.search);
@@ -486,7 +490,7 @@ ${kt.map(([id, a]) => {
     if (s.map && s.map.uri && s.map.uri !== s.uri) {
       return [{
         ...s,
-        uri: s.map.uri,
+        ...s.map,
         cache: true // cache this fetch
       }, s];
     }
@@ -610,6 +614,8 @@ Use the box below to update the URL`, {
 };
 
 const parser = async (manifest, file, href, codec) => {
+  console.info('Parsing', href || manifest);
+
   // data uri
   if (manifest.startsWith('data:')) {
     manifest = await fetch(manifest).then(r => r.text());
@@ -636,6 +642,21 @@ const parser = async (manifest, file, href, codec) => {
       o = new URL(manifest, href);
     }
 
+    // what if manifest is a media
+    if (!o.href.includes('.mpd') && !o.href.includes('.m3u8')) {
+      const r = await fetch(o.href);
+      const type = r.headers.get('Content-Type');
+      if (type) {
+        if (type.startsWith('video/') || type.startsWith('audio')) {
+          document.title = 'Downloading ' + o.href;
+          return download([{
+            uri: o.href,
+            base: href
+          }], file, codec);
+        }
+      }
+    }
+
     manifest = await fetch(o.href).then(r => {
       if (r.ok) {
         href = o.href;
@@ -648,12 +669,21 @@ const parser = async (manifest, file, href, codec) => {
   document.title = 'Parsing M3U8 manifest ...';
   document.body.dataset.mode = 'parse';
 
-  const p = new m3u8Parser.Parser();
+  let p;
+  if (href.includes('.mpd')) {
+    p = {
+      manifest: mpdParser.parse(manifest, {
+        manifestUri: href
+      })
+    };
+  }
+  else {
+    p = new m3u8Parser.Parser();
+    p.push(manifest);
+    p.end();
+  }
 
-  p.push(manifest);
-  p.end();
-
-  console.info('Manifest', p);
+  console.info('[Manifest]', p);
 
   const playlists = p.manifest.playlists || [];
   // add media groups
@@ -724,18 +754,18 @@ const parser = async (manifest, file, href, codec) => {
             'Video [' +
             playlist.attributes.RESOLUTION.width + ' × ' +
             playlist.attributes.RESOLUTION.height + '] -> ' +
-            trim(playlist.uri)
+            trim(playlist.resolvedUri || playlist.uri)
           );
         }
         else if (playlist.group) {
           msgs.push(
             playlist.group.type.toLowerCase() + ' [' +
             playlist.group.lang.toLowerCase() + '] -> ' +
-            trim(playlist.uri, 30)
+            trim(playlist.resolvedUri || playlist.uri, 30)
           );
         }
         else {
-          msgs.push(trim(playlist.uri));
+          msgs.push(trim(playlist.resolvedUri || playlist.uri));
         }
       }
       n = (playlists.length > 1 ? await prompt('Select one stream:\n\n' + msgs.map((m, n) => n + '. ' + m).join('\n'), {
@@ -752,16 +782,23 @@ const parser = async (manifest, file, href, codec) => {
 
     const v = playlists[Number(n)];
     if (v) {
-      try {
-        const codec = v.attributes?.CODECS;
-        const o = new URL(v.uri, href || undefined);
-        return parser(o.href, file, undefined, codec);
+      if (v.segments && v.segments.length) {
+        p.manifest.segments = v.segments;
       }
-      catch (e) {
-        return parser(v.uri, file, href);
+      else {
+        try {
+          const codec = v.attributes?.CODECS;
+          const o = new URL(v.resolvedUri || v.uri, href || undefined);
+          return parser(o.href, file, undefined, codec);
+        }
+        catch (e) {
+          return parser(v.resolvedUri || v.uri, file, href);
+        }
       }
     }
-    throw Error('UNKNOWN_QUALITY');
+    else {
+      throw Error('UNKNOWN_QUALITY');
+    }
   }
 
   const segments = p.manifest.segments;
@@ -794,7 +831,7 @@ const options = div => {
   };
 
   // this way, the file can get played while download is in progress
-  if (div.meta.ext === 'm3u8' || div.meta.ext === '') {
+  if (div.meta.ext === 'm3u8' || div.meta.ext === 'mpd' || div.meta.ext === '') {
     options.types[0].accept = {
       'video/mkv': ['.mkv']
     };
@@ -865,8 +902,11 @@ document.getElementById('hrefs').onsubmit = async e => {
       if (
         div.meta.ext !== 'txt' &&
         div.meta.ext !== 'm3u8' &&
+        div.meta.ext !== 'mpd' &&
         div.o.url.indexOf('.m3u8') === -1 &&
-        div.o.url.indexOf('format=m3u8') === -1
+        div.o.url.indexOf('.mpd') === -1 &&
+        div.o.url.indexOf('format=m3u8') === -1 &&
+        div.o.url.indexOf('format=mpd') === -1
       ) {
         document.title = 'Downloading ' + div.o.url;
         await download([{

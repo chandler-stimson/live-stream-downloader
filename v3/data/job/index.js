@@ -1,3 +1,22 @@
+/**
+    MyGet - A multi-thread downloading library
+    Copyright (C) 2014-2022 [Chandler Stimson]
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the Mozilla Public License as published by
+    the Mozilla Foundation, either version 2 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Mozilla Public License for more details.
+    You should have received a copy of the Mozilla Public License
+    along with this program.  If not, see {https://www.mozilla.org/en-US/MPL/}.
+
+    GitHub: https://github.com/chandler-stimson/live-stream-downloader/
+    Homepage: https://webextension.org/listing/hls-downloader.html
+*/
+
 /* global MyGet, m3u8Parser, mpdParser, network */
 
 /*
@@ -272,14 +291,8 @@ Promise.all([
       tabId
     },
     injectImmediately: true,
-    func: url => {
+    func: () => {
       self.storage = self.storage || new Map();
-
-      if (url && self.storage.has(url) === false) {
-        self.storage.set(url, {
-          url
-        });
-      }
 
       return [...self.storage.values()];
     },
@@ -376,6 +389,14 @@ Promise.all([
     }
   }
   catch (e) {}
+
+  // append
+  const append = args.get('append');
+  if (append && os.has(append) === false) {
+    os.set(append, {
+      url: append
+    });
+  }
 
   let forbiddens = 0;
   // remove forbidden links
@@ -726,9 +747,15 @@ const parser = async (manifest, file, href, codec) => {
       if (a.group && b.group) {
         return b.group.type.localeCompare(a.group.type);
       }
-      //
+
       try {
-        return b.attributes.RESOLUTION.width - a.attributes.RESOLUTION.width;
+        const one = b.attributes.RESOLUTION.width - a.attributes.RESOLUTION.width;
+
+        // same quality
+        if (one === 0 && 'BANDWIDTH' in b.attributes) {
+          return b.attributes.BANDWIDTH - a.attributes.BANDWIDTH;
+        }
+        return one;
       }
       catch (e) {
         return 0;

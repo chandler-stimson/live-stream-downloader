@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "version": "0.4.8",
+  "version": "0.4.9",
   "name": "Live Stream Downloader",
   "description": "__MSG_description__",
   "default_locale": "en",
@@ -32,7 +32,14 @@
   ],
   "homepage_url": "https://webextension.org/listing/hls-downloader.html",
   "background": {
-    "service_worker": "worker.js"
+    "service_worker": "worker.js",
+    "scripts": [
+      "network/core.js",
+      "network/icon.js",
+      "context.js",
+      "plugins/blob-detector/core.js",
+      "worker.js"
+    ]
   },
   "icons": {
     "16": "/data/icons/16.png",
@@ -46,5 +53,11 @@
   },
   "action": {
     "default_title": "Download HLS Streams"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{2ea2bfef-af69-4427-909c-34e1f3f5a418}",
+      "strict_min_version": "128.0"
+    }
   }
 }

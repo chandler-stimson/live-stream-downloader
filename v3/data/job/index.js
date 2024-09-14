@@ -23,9 +23,12 @@
   http://127.0.0.1:8000/example/sample/unencrypted.m3u8
   aHR0cHM6Ly9iaXRkYXNoLWEuYWthbWFpaGQubmV0L2NvbnRlbnQvc2ludGVsL2hscy9wbGF5bGlzdC5tM3U4
   aHR0cHM6Ly9iaXRkYXNoLWEuYWthbWFpaGQubmV0L2NvbnRlbnQvTUkyMDExMDkyMTAwODRfMS9tM3U4cy9mMDhlODBkYS1iZjFkLTRlM2QtODg5OS1mMGY2MTU1ZjZlZmEubTN1OA==
-  aHR0cDovL2RlbW8udGhlb3BsYXllci5jb20vZHJtLWFlcy1wcm90ZWN0aW9uLTEyOC1lbmNyeXB0aW9u
+
   aHR0cHM6Ly9hbmltZS5hbmlkdWIubGlmZS9hbmltZS9mdWxsLzExMjcwLWRldnVzaGtpLXBvbmktZW5rb21hLXVtYXlvbi0wMS1pei0xMy5odG1s
   aHR0cHM6Ly9zb3VuZGNsb3VkLmNvbS9uYmEteW91bmdib3kveW91bmdib3ktbmV2ZXItYnJva2UtYWdhaW4=
+
+  Encrypted without provided iv
+  aHR0cDovL2RlbW8udGhlb3BsYXllci5jb20vZHJtLWFlcy1wcm90ZWN0aW9uLTEyOC1lbmNyeXB0aW9u
 
   Encrypted with discontinuity and audio and subtitle media groups
     aHR0cHM6Ly93d3cuc2JzLmNvbS5hdS9vbmRlbWFuZC93YXRjaC85MTUxNzAzNzE4MzQ=
@@ -34,7 +37,7 @@
 
   https://raw.githubusercontent.com/ooyala/m3u8/master/sample-playlists/media-playlist-with-discontinuity.m3u8
 
-  Encrypted
+  Encrypted with provided iv
   https://www.radiantmediaplayer.com/media/rmp-segment/bbb-abr-aes/playlist.m3u8
 
   jwplayer with TXT manifest
@@ -44,7 +47,7 @@
   https://dash.akamaized.net/dash264/TestCasesIOP33/adapatationSetSwitching/5/manifest.mpd
   http://ftp.itec.aau.at/datasets/DASHDataset2014/BigBuckBunny/2sec/BigBuckBunny_2s_onDemand_2014_05_09.mpd
 
-  Encrypted with difference encrypted to decrypted byte length
+  Encrypted with difference encrypted to decrypted byte length and no iv
   aHR0cHM6Ly92NS52b2lyYW5pbWUuY29tL2FuaW1lL21vYmlsZS1zdWl0LWd1bmRhbS1zZWVkLXZmL21vYmlsZS1zdWl0LWd1bmRhbS1zZWVkLTIwLXZmLyAtPiBMRUNURVVSIE1PT04=
 */
 

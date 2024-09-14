@@ -78,7 +78,14 @@ class EGet extends MyGet {
     // try to fix broken pipe before header received
     for (;;) {
       try {
-        response = await native();
+        let id;
+        response = await Promise.race([
+          native(),
+          new Promise((resolve, reject) => {
+            id = setTimeout(reject, timeout.delay, Error('NO_INIT_TIMEOUT'));
+          })
+        ]);
+        clearTimeout(id);
         if (!response.ok) {
           throw Error('STATUS_' + response.status);
         }
@@ -135,6 +142,10 @@ class EGet extends MyGet {
           if (!active) {
             return;
           }
+          if (params?.signal?.aborted) {
+            return;
+          }
+
           const counter = errors.get(request.url) ?? 0;
           console.info('pipe is broken :: ', e.message, `#${counter}`);
 
@@ -196,8 +207,10 @@ class EGet extends MyGet {
             return;
           }
           // timeout
-          clearTimeout(timeout.id);
-          timeout.id = setTimeout(() => timeout.controller.abort(Error('TIMEOUT')), timeout.delay);
+          clearTimeout(timeout.controller.id);
+          timeout.controller.id = setTimeout(() => {
+            timeout.controller.abort(Error('TIMEOUT'));
+          }, timeout.delay);
 
           // pump
           return reader.read().then(({done, value}) => {
@@ -212,6 +225,7 @@ class EGet extends MyGet {
 
             controller.enqueue(value);
             offset += value.byteLength;
+
             return pump();
           }).catch(e => recover(e));
         };
@@ -221,13 +235,13 @@ class EGet extends MyGet {
             controller = c;
             controller.close = new Proxy(controller.close, {
               apply(target, self, args) {
-                clearTimeout(timeout.id);
+                clearTimeout(timeout.controller.id);
                 return Reflect.apply(target, self, args);
               }
             });
             controller.error = new Proxy(controller.error, {
               apply(target, self, args) {
-                clearTimeout(timeout.id);
+                clearTimeout(timeout.controller.id);
                 return Reflect.apply(target, self, args);
               }
             });
@@ -239,7 +253,7 @@ class EGet extends MyGet {
           cancel() {
             active = false;
             reader.cancel();
-            clearTimeout(timeout.id);
+            clearTimeout(timeout.controller.id);
           }
         });
       }

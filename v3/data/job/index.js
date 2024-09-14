@@ -43,6 +43,9 @@
   MPEG-DASH (*.Mpd)  with playlist and resolvedUri
   https://dash.akamaized.net/dash264/TestCasesIOP33/adapatationSetSwitching/5/manifest.mpd
   http://ftp.itec.aau.at/datasets/DASHDataset2014/BigBuckBunny/2sec/BigBuckBunny_2s_onDemand_2014_05_09.mpd
+
+  Encrypted with difference encrypted to decrypted byte length
+  aHR0cHM6Ly92NS52b2lyYW5pbWUuY29tL2FuaW1lL21vYmlsZS1zdWl0LWd1bmRhbS1zZWVkLXZmL21vYmlsZS1zdWl0LWd1bmRhbS1zZWVkLTIwLXZmLyAtPiBMRUNURVVSIE1PT04=
 */
 
 const args = new URLSearchParams(location.search);

@@ -29,6 +29,7 @@ class DGet extends MyGet {
     super(...args);
 
     this['basic-cache'] = {};
+    this['decrypted-offset'] = 0;
   }
   static merge(array) {
     // make sure to remove possible duplicated chunks (in case of error, the same chunk if fetched one more time)
@@ -96,10 +97,14 @@ class DGet extends MyGet {
           iv
         }, importedKey, encrypted);
       });
+      // since we write each segment sequentially, we can fix the write position mismatch here
+      this['decrypted-offset'] += decrypted.byteLength - encrypted.byteLength;
+      // console.info(position mismatch, this['decrypted-offset']);
 
       // write to the original cache
-      const stream = new self.MemoryWriter(position, offsets[0], this.cache);
+      const stream = new self.MemoryWriter(position, offsets[0] - this['decrypted-offset'], this.cache);
       const writable = await stream.getWriter();
+
       await writable.write(new Uint8Array(decrypted));
     }
     else {

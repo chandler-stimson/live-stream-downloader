@@ -136,9 +136,11 @@ const observe = d => {
       self.storage.set(v.url, v);
       if (self.storage.size > size) {
         for (const [href] of self.storage) {
-          // do not delete important links
-          if (href.includes('.m3u8') || href.includes('.mpd')) {
-            continue;
+          // do not delete important links (only if total size is less than size + 100)
+          if (self.storage.size < size + 100) {
+            if (href.includes('.m3u8') || href.includes('.mpd')) {
+              continue;
+            }
           }
           self.storage.delete(href);
           if (self.storage.size <= size) {

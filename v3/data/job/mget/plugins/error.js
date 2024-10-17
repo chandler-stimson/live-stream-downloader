@@ -30,8 +30,12 @@ class EGet extends MyGet {
   constructor(...args) {
     super(...args);
 
-    this.options['error-tolerance'] = 20; // number; number of times a single uri can throw error before breaking
-    this.options['error-delay'] = 300; // ms; min-delay before restarting the segment
+    this.options['thread-timeout'] = this.options['thread-timeout'] || 10000; // ms
+    this.options['thread-initial-timeout'] = this.options['thread-initial-timeout'] || 30000; // ms
+    // number of times a single uri can throw error before breaking
+    this.options['error-tolerance'] = this.options['error-tolerance'] || 30; // number;
+    // min-delay before restarting the segment
+    this.options['error-delay'] = this.options['error-delay'] || 300; // ms;
     this.options['error-handler'] = e => Promise.reject(e);
 
     this.errors = new Map(); // stores error counts
@@ -45,8 +49,10 @@ class EGet extends MyGet {
     const {errors, options} = this;
 
     const timeout = {
-      delay: this.options['thread-timeout'] || 10000
-      // delay: 60
+      delay: {
+        pump: this.options['thread-timeout'],
+        initial: this.options['thread-initial-timeout']
+      }
     };
 
     // none recoverable status codes
@@ -81,8 +87,10 @@ class EGet extends MyGet {
         let id;
         response = await Promise.race([
           native(),
-          new Promise((resolve, reject) => {
-            id = setTimeout(reject, timeout.delay, Error('NO_INIT_TIMEOUT'));
+          new Promise((resolve, reject) => {// breaks the native response instead of rejecting
+            id = setTimeout(() => {
+              timeout.controller.abort(Error('NO_INIT_TIMEOUT'));
+            }, timeout.delay.initial);
           })
         ]);
         clearTimeout(id);
@@ -210,7 +218,7 @@ class EGet extends MyGet {
           clearTimeout(timeout.controller.id);
           timeout.controller.id = setTimeout(() => {
             timeout.controller.abort(Error('TIMEOUT'));
-          }, timeout.delay);
+          }, timeout.delay.pump);
 
           // pump
           return reader.read().then(({done, value}) => {

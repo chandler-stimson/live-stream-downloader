@@ -101,7 +101,6 @@ class DGet extends MyGet {
         }
         iv = e.buffer;
       }
-      console.log(iv);
 
       const decrypted = await crypto.subtle.importKey('raw', value, {
         name: 'AES-CBC',

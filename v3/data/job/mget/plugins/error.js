@@ -31,7 +31,7 @@ class EGet extends MyGet {
     super(...args);
 
     this.options['thread-timeout'] = this.options['thread-timeout'] || 10000; // ms
-    this.options['thread-initial-timeout'] = this.options['thread-initial-timeout'] || 30000; // ms
+    this.options['thread-initial-timeout'] = this.options['thread-initial-timeout'] || 10000; // ms
     // number of times a single uri can throw error before breaking
     this.options['error-tolerance'] = this.options['error-tolerance'] || 30; // number;
     // min-delay before restarting the segment
@@ -39,6 +39,7 @@ class EGet extends MyGet {
     this.options['error-handler'] = e => Promise.reject(e);
 
     this.errors = new Map(); // stores error counts
+    this.errors.set('_not_initialized_', 0); // track the server for failing to open a new connection.
   }
 
   /* returns the native fetch */
@@ -87,8 +88,9 @@ class EGet extends MyGet {
         let id;
         response = await Promise.race([
           native(),
-          new Promise((resolve, reject) => {// breaks the native response instead of rejecting
+          new Promise((resolve, reject) => {
             id = setTimeout(() => {
+              // breaks the native response instead of rejecting
               timeout.controller.abort(Error('NO_INIT_TIMEOUT'));
             }, timeout.delay.initial);
           })
@@ -100,6 +102,20 @@ class EGet extends MyGet {
         break;
       }
       catch (e) {
+        // reconfigure this MGet if there are too many fails on starting point
+        {
+          const counter = errors.get('_not_initialized_');
+          // store the total number of failing for starting a new pipe
+          if (e.message === 'NO_INIT_TIMEOUT') {
+            errors.set('_not_initialized_', counter + 1);
+          }
+          if (counter === 20) {
+            this.options.threads = Math.min(2, this.options.threads);
+            this.options['thread-initial-timeout'] = Math.max(30000, this.options['thread-initial-timeout']);
+            console.info('[error plugin]', 'Lowering the thread count and increasing the error timeout', this.options);
+          }
+        }
+
         const counter = errors.get(request.url) ?? 0;
         errors.set(request.url, counter + 1);
         console.info('pipe is broken :: ', e.message, `#${counter}`);

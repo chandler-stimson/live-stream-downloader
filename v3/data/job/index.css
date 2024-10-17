@@ -21,10 +21,10 @@ body {
   height: 100vh;
   accent-color: var(--bg-dark);
 }
-body[data-mode=error] {
+body[data-mode="error"] {
   background-color: #ffdcdc;
 }
-body::before {
+body::after {
   position: fixed;
   inset: 0;
   display: flex;
@@ -39,14 +39,14 @@ body::before {
 body[data-mode=done] {
   background-color: #f1ffed;
 }
-body[data-mode=download]::before {
+body[data-mode=download]::after {
   content: 'Download is in progress. Do not close this window...';
 }
-body[data-mode=parse]::before {
+body[data-mode=parse]::after {
   content: 'Parsing M3U8 manifest...';
 }
-body[data-mode=parse]::before,
-body[data-mode=download]::before {
+body[data-mode=parse]::after,
+body[data-mode=download]::after {
   color: #fff;
   font-size: 18px;
   background-color: rgba(0, 0, 0, 0.8);
@@ -318,8 +318,8 @@ body[data-mode=empty] #tools {
   cursor: text;
   justify-self: end;
 }
-#options input[type=text],
-#options input[type=number] {
+#options input[type="text"],
+#options input[type="number"] {
   width: 20ch;
 }
 #options .sep,
@@ -356,4 +356,8 @@ body[data-mode="prepare"] #hrefs input[type="submit"],
 body[data-mode="download"] #hrefs input[type="submit"] {
   opacity: var(--disabled);
   pointer-events: none;
+}
+
+.contents {
+  display: contents;
 }

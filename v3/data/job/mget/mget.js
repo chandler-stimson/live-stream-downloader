@@ -364,7 +364,7 @@ MGet.OPTIONS = {
   // thread-timeout: ms for inactivity period before breaking. Do not use small value since it is also used for
   // downloading from server that does not support ranging
   'thread-timeout': 10000, // ms
-  'thread-initial-timeout': 30000, // ms
+  'thread-initial-timeout': 10000, // ms
   'error-tolerance': 30, // number of times a single uri can throw error before breaking
   'error-delay': 300, // ms; min-delay before restarting the segment
   'threads': 2, // number; max number of simultaneous threads

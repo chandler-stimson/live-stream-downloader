@@ -1,5 +1,5 @@
 [{
-  "type": "host",
+  "type": "stream",
   "value": ".gstatic.com"
 }, {
   "type": "host",
@@ -9,24 +9,14 @@
   "value": ".globo.com"
 }, {
   "type": "host",
-  "value": ".playm4u"
-}, {
-  "type": "host",
-  "value": ".wafflehacker.io"
-}, {
-  "type": "host",
-  "value": ".darkfilms.top",
-  "description": "#44"
-}, {
-  "type": "host",
-  "value": ".darkfilms.cc",
-  "description": "#44"
-}, {
-  "type": "host",
   "value": ".ch3plus.com",
   "description": "#48"
 }, {
   "type": "host",
   "value": ".byteark.com",
   "description": "#48"
+}, {
+  "type": "host",
+  "value": ".wafflehacker.io",
+  "description": "#94"
 }]

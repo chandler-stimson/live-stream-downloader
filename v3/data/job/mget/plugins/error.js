@@ -102,7 +102,7 @@ class EGet extends MyGet {
         break;
       }
       catch (e) {
-        // reconfigure this MGet if there are too many fails on starting point
+        // reconfigure the MGet if there are too many fails on starting point
         {
           const counter = errors.get('_not_initialized_');
           // store the total number of failing for starting a new pipe

@@ -62,13 +62,22 @@ const network = {
   }).then(r => r.json());
 
   network.blocked = () => network.hosts().then(a => {
-    // Currently only supports "host" type
-    const list = a.filter(o => o.type === 'host').map(o => o.value);
+    // Currently only supports "host" and "stream" types
+    const hosts = a.filter(o => o.type === 'host').map(o => o.value);
+    const streams = a.filter(o => o.type === 'stream').map(o => o.value);
 
-    const cached = d => {
-      return list.some(s => d.url.includes(s) && d.url.split(s)[0].split('/').length === 3);
+    return d => {
+      if (d.host) {
+        if (hosts.some(s => d.host.includes(s) && d.host.split(s)[0].split('/').length === 3)) {
+          return true;
+        }
+      }
+      if (d.stream) {
+        if (streams.some(s => d.stream.includes(s))) {
+          return true;
+        }
+      }
+      return false;
     };
-    network.blocked = () => Promise.resolve(cached);
-    return cached;
   });
 }

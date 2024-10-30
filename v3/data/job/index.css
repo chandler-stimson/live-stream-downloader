@@ -238,6 +238,9 @@ body:not([data-mode=empty]) #intro {
 #hrefs input[type=button]:not(:last-child) {
   margin-right: -8px;
 }
+.entry[data-blocked="true"] span[data-id=name] {
+  text-decoration: line-through;
+}
 
 #progress {
   z-index: 10;

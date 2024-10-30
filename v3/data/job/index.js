@@ -273,7 +273,8 @@ const build = async os => {
     else {
       clone.querySelector('[data-id=size]').textContent = '-';
     }
-    clone.querySelector('[data-id=href]').textContent = clone.querySelector('[data-id=href]').title = (o.url || 'N/A');
+    clone.querySelector('[data-id=href]').textContent = clone.querySelector('[data-id=href]').title =
+      o.blocked ? `excluded per the website owner's request` : (o.url || 'N/A');
 
     clone.querySelector('input[data-id=copy]').onclick = e => navigator.clipboard.writeText(o.url).then(() => {
       e.target.value = 'Done';
@@ -282,6 +283,12 @@ const build = async os => {
 
     div.o = o;
     div.meta = meta;
+    div.dataset.blocked = o.blocked;
+
+    if (o.blocked) {
+      clone.querySelector('input[data-id="copy"]').disabled = true;
+      clone.querySelector('input[type=submit]').disabled = true;
+    }
 
     document.getElementById('hrefs').appendChild(div);
     const c = document.getElementById('hrefs-container');
@@ -407,9 +414,12 @@ Promise.all([
   let forbiddens = 0;
   // remove forbidden links
   const blocked = await network.blocked();
-  for (const url of os.keys()) {
-    if (blocked({url})) {
-      os.delete(url);
+  for (const [stream, o] of os.entries()) {
+    o.blocked = blocked({
+      host: args.get('href'),
+      stream
+    });
+    if (o.blocked) {
       forbiddens += 1;
     }
   }

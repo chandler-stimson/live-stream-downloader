@@ -1,6 +1,7 @@
 [{
   "type": "stream",
-  "value": ".gstatic.com"
+  "value": ".gstatic.com",
+  "hosts": ["*"]
 }, {
   "type": "host",
   "value": ".youtube.com"

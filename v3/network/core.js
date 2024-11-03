@@ -51,7 +51,12 @@ const network = {
   };
 }
 
-// do not allow downloading from blocked resources
+/* do not allow downloading from blocked resources
+ * two types:
+ *   block same-origin streams on a host: {"type": "host", "value": ".youtube.com"}
+ *   block streams on selected hosts:     {"type": "stream", "value": ".gstatic.com", "hosts": ["*"]}
+ */
+
 {
   network.hosts = () => caches.open(network.NAME).then(async cache => {
     const r = await cache.match(network.LIST);
@@ -63,21 +68,48 @@ const network = {
 
   network.blocked = () => network.hosts().then(a => {
     // Currently only supports "host" and "stream" types
-    const hosts = a.filter(o => o.type === 'host').map(o => o.value);
-    const streams = a.filter(o => o.type === 'stream').map(o => o.value);
+    const hosts = a.filter(o => o.type === 'host');
+    const streams = a.filter(o => o.type === 'stream');
 
     return d => {
+      // block same-origin streams for blocked hosts
       if (d.host) {
-        if (hosts.some(s => d.host.includes(s) && d.host.split(s)[0].split('/').length === 3)) {
-          return true;
+        for (const o of hosts) {
+          if (d.host.includes(o.value) && d.host.split(o.value)[0].split('/').length === 3) {
+            if (d.stream.includes(o.value)) {
+              return {
+                value: true,
+                reason: `Downloading from "${o.value}" host is blocked`
+              };
+            }
+          }
         }
       }
+      // block streams on defined hosts
       if (d.stream) {
-        if (streams.some(s => d.stream.includes(s))) {
-          return true;
+        for (const o of streams) {
+          if (d.stream.includes(o.value)) {
+            const hosts = o.hosts || [];
+            if (hosts.includes('*')) {
+              return {
+                value: true,
+                reason: `Downloading "${o.value}" streams are blocked on all hosts`
+              };
+            }
+            for (const host of hosts) {
+              if (d.host.includes(host) && d.host.split(host)[0].split('/').length === 3) {
+                return {
+                  value: true,
+                  reason: `Downloading "${o.value}" streams are blocked on "${host}"`
+                };
+              }
+            }
+          }
         }
       }
-      return false;
+      return {
+        value: false
+      };
     };
   });
 }

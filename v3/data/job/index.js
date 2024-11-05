@@ -276,8 +276,6 @@ const build = async os => {
     clone.querySelector('[data-id=href]').textContent = clone.querySelector('[data-id=href]').title =
       o.blocked.value ? o.blocked.reason : (o.url || 'N/A');
 
-      console.log(o.blocked.reason);
-
     clone.querySelector('input[data-id=copy]').onclick = e => navigator.clipboard.writeText(o.url).then(() => {
       e.target.value = 'Done';
       setTimeout(() => e.target.value = 'Copy', 750);

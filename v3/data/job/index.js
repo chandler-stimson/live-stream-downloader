@@ -1,20 +1,54 @@
-/* global MyGet, m3u8Parser, network */
+/**
+    MyGet - A multi-thread downloading library
+    Copyright (C) 2014-2022 [Chandler Stimson]
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the Mozilla Public License as published by
+    the Mozilla Foundation, either version 2 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Mozilla Public License for more details.
+    You should have received a copy of the Mozilla Public License
+    along with this program.  If not, see {https://www.mozilla.org/en-US/MPL/}.
+
+    GitHub: https://github.com/chandler-stimson/live-stream-downloader/
+    Homepage: https://webextension.org/listing/hls-downloader.html
+*/
+
+/* global MyGet, m3u8Parser, mpdParser, network */
 
 /*
   http://127.0.0.1:8000/example/sample/unencrypted.m3u8
   aHR0cHM6Ly9iaXRkYXNoLWEuYWthbWFpaGQubmV0L2NvbnRlbnQvc2ludGVsL2hscy9wbGF5bGlzdC5tM3U4
   aHR0cHM6Ly9iaXRkYXNoLWEuYWthbWFpaGQubmV0L2NvbnRlbnQvTUkyMDExMDkyMTAwODRfMS9tM3U4cy9mMDhlODBkYS1iZjFkLTRlM2QtODg5OS1mMGY2MTU1ZjZlZmEubTN1OA==
-  aHR0cDovL2RlbW8udGhlb3BsYXllci5jb20vZHJtLWFlcy1wcm90ZWN0aW9uLTEyOC1lbmNyeXB0aW9u
+
   aHR0cHM6Ly9hbmltZS5hbmlkdWIubGlmZS9hbmltZS9mdWxsLzExMjcwLWRldnVzaGtpLXBvbmktZW5rb21hLXVtYXlvbi0wMS1pei0xMy5odG1s
   aHR0cHM6Ly9zb3VuZGNsb3VkLmNvbS9uYmEteW91bmdib3kveW91bmdib3ktbmV2ZXItYnJva2UtYWdhaW4=
 
+  Encrypted without provided iv
+  aHR0cDovL2RlbW8udGhlb3BsYXllci5jb20vZHJtLWFlcy1wcm90ZWN0aW9uLTEyOC1lbmNyeXB0aW9u
+
   Encrypted with discontinuity and audio and subtitle media groups
     aHR0cHM6Ly93d3cuc2JzLmNvbS5hdS9vbmRlbWFuZC93YXRjaC85MTUxNzAzNzE4MzQ=
+  Unstable server with lots of 502 errors
+    aHR0cHM6Ly9oYW10YW1vdmllLm5sLyVEOCVBRiVEOCVBNyVEOSU4NiVEOSU4NCVEOSU4OCVEOCVBRi0lRDklODElREIlOEMlRDklODQlRDklODUtJUQ4JUFDJUQ5JTg3JUQ4JUE3JUQ5JTg2LSVEOCVBOCVEOCVBNy0lRDklODUlRDklODYtJUQ4JUE4JUQ4JUIxJUQ5JTgyJUQ4JUI1Lw==
 
   https://raw.githubusercontent.com/ooyala/m3u8/master/sample-playlists/media-playlist-with-discontinuity.m3u8
 
-  Encrypted
+  Encrypted with provided iv
   https://www.radiantmediaplayer.com/media/rmp-segment/bbb-abr-aes/playlist.m3u8
+
+  jwplayer with TXT manifest
+  aHR0cHM6Ly9mdWxsbWF0Y2hzcG9ydHMuY2Mvc3BhaW4tdnMtZnJhbmNlLWZ1bGwtbWF0Y2gtZXVyby0yMDI0Lz90YWI9aGlnaGxpZ2h0cw==
+
+  MPEG-DASH (*.Mpd)  with playlist and resolvedUri
+  https://dash.akamaized.net/dash264/TestCasesIOP33/adapatationSetSwitching/5/manifest.mpd
+  http://ftp.itec.aau.at/datasets/DASHDataset2014/BigBuckBunny/2sec/BigBuckBunny_2s_onDemand_2014_05_09.mpd
+
+  Encrypted with difference encrypted to decrypted byte length and no iv
+  aHR0cHM6Ly92NS52b2lyYW5pbWUuY29tL2FuaW1lL21vYmlsZS1zdWl0LWd1bmRhbS1zZWVkLXZmL21vYmlsZS1zdWl0LWd1bmRhbS1zZWVkLTIwLXZmLyAtPiBMRUNURVVSIE1PT04=
 */
 
 const args = new URLSearchParams(location.search);
@@ -239,7 +273,8 @@ const build = async os => {
     else {
       clone.querySelector('[data-id=size]').textContent = '-';
     }
-    clone.querySelector('[data-id=href]').textContent = clone.querySelector('[data-id=href]').title = (o.url || 'N/A');
+    clone.querySelector('[data-id=href]').textContent = clone.querySelector('[data-id=href]').title =
+      o.blocked.value ? o.blocked.reason : (o.url || 'N/A');
 
     clone.querySelector('input[data-id=copy]').onclick = e => navigator.clipboard.writeText(o.url).then(() => {
       e.target.value = 'Done';
@@ -248,6 +283,12 @@ const build = async os => {
 
     div.o = o;
     div.meta = meta;
+    div.dataset.blocked = o.blocked.value;
+
+    if (o.blocked.value) {
+      clone.querySelector('input[data-id="copy"]').disabled = true;
+      clone.querySelector('input[type=submit]').disabled = true;
+    }
 
     document.getElementById('hrefs').appendChild(div);
     const c = document.getElementById('hrefs-container');
@@ -262,14 +303,9 @@ Promise.all([
     target: {
       tabId
     },
-    func: url => {
+    injectImmediately: true,
+    func: () => {
       self.storage = self.storage || new Map();
-
-      if (url && self.storage.has(url) === false) {
-        self.storage.set(url, {
-          url
-        });
-      }
 
       return [...self.storage.values()];
     },
@@ -280,9 +316,17 @@ Promise.all([
     target: {
       tabId
     },
+    injectImmediately: true,
     func: types => performance.getEntriesByType('resource')
-      .filter(o => ['video', 'xmlhttprequest'].includes(o.initiatorType))
+      .filter(o => o.initiatorType === 'video' ||
+        o.initiatorType === 'other' ||
+        o.initiatorType === 'xmlhttprequest' ||
+        o.contentType?.startsWith('video/') ||
+        o.contentType?.startsWith('audio/'))
       .filter(o => {
+        if (o.contentType?.startsWith('video/') || o.contentType?.startsWith('audio/')) {
+          return true;
+        }
         for (const type of types) {
           if (o.name.includes('.' + type)) {
             return true;
@@ -292,15 +336,38 @@ Promise.all([
       .map(o => ({
         initiator: location.href,
         url: o.name,
-        timeStamp: performance.now() + o.startTime,
+        timeStamp: performance.timeOrigin + o.startTime,
         source: 'performance'
       })),
     world: 'ISOLATED',
     args: [types]
-  }).then(a => a[0].result).catch(() => []))
-]).then(async ([os1, os2]) => {
+  }).then(a => a[0].result).catch(() => [])),
+  // get jwplayer playlist
+  chrome.scripting.executeScript({
+    target: {
+      tabId,
+      allFrames: true
+    },
+    injectImmediately: true,
+    func: () => {
+      const list = [];
+      try {
+        for (const o of self.jwplayer().getPlaylist()) {
+          list.push({
+            initiator: location.href,
+            url: new URL(o.file, location.href).href,
+            timeStamp: performance.timing.domComplete,
+            source: 'jwplayer'
+          });
+        }
+      }
+      catch (e) {}
+      return list;
+    },
+    world: 'MAIN'
+  }).then(a => a.map(o => o.result).flat().filter(a => a)).catch(() => [])
+]).then(async ([os1, os2, os3]) => {
   const os = new Map();
-
   if (args.get('extra') === 'true') {
     try {
       const links = await new Promise(resolve => browser.runtime.sendMessage({
@@ -317,12 +384,24 @@ Promise.all([
     }
   }
 
-  for (const o of (os2 || [])) {
-    os.set(o.url, o);
+  try {
+    for (const o of (os3 || [])) {
+      os.set(o.url, o);
+    }
   }
-  for (const o of (os1 || [])) { // overwrite os2 which does not include details
-    os.set(o.url, o);
+  catch (e) {}
+  try {
+    for (const o of (os2 || [])) {
+      os.set(o.url, o);
+    }
   }
+  catch (e) {}
+  try {
+    for (const o of (os1 || [])) { // overwrite os2 which does not include details
+      os.set(o.url, o);
+    }
+  }
+  catch (e) {}
 
   const items = [...os.values()];
 
@@ -421,7 +500,7 @@ ${kt.map(([id, a]) => {
     if (s.map && s.map.uri && s.map.uri !== s.uri) {
       return [{
         ...s,
-        uri: s.map.uri,
+        ...s.map,
         cache: true // cache this fetch
       }, s];
     }
@@ -545,6 +624,8 @@ Use the box below to update the URL`, {
 };
 
 const parser = async (manifest, file, href, codec) => {
+  console.info('Parsing', href || manifest);
+
   // data uri
   if (manifest.startsWith('data:')) {
     manifest = await fetch(manifest).then(r => r.text());
@@ -571,6 +652,21 @@ const parser = async (manifest, file, href, codec) => {
       o = new URL(manifest, href);
     }
 
+    // what if manifest is a media
+    if (!o.href.includes('.mpd') && !o.href.includes('.m3u8')) {
+      const r = await fetch(o.href);
+      const type = r.headers.get('Content-Type');
+      if (type) {
+        if (type.startsWith('video/') || type.startsWith('audio')) {
+          document.title = 'Downloading ' + o.href;
+          return download([{
+            uri: o.href,
+            base: href
+          }], file, codec);
+        }
+      }
+    }
+
     manifest = await fetch(o.href).then(r => {
       if (r.ok) {
         href = o.href;
@@ -583,12 +679,21 @@ const parser = async (manifest, file, href, codec) => {
   document.title = 'Parsing M3U8 manifest ...';
   document.body.dataset.mode = 'parse';
 
-  const p = new m3u8Parser.Parser();
+  let p;
+  if (href.includes('.mpd')) {
+    p = {
+      manifest: mpdParser.parse(manifest, {
+        manifestUri: href
+      })
+    };
+  }
+  else {
+    p = new m3u8Parser.Parser();
+    p.push(manifest);
+    p.end();
+  }
 
-  p.push(manifest);
-  p.end();
-
-  console.info('Manifest', p);
+  console.info('[Manifest]', p);
 
   const playlists = p.manifest.playlists || [];
   // add media groups
@@ -631,9 +736,15 @@ const parser = async (manifest, file, href, codec) => {
       if (a.group && b.group) {
         return b.group.type.localeCompare(a.group.type);
       }
-      //
+
       try {
-        return b.attributes.RESOLUTION.width - a.attributes.RESOLUTION.width;
+        const one = b.attributes.RESOLUTION.width - a.attributes.RESOLUTION.width;
+
+        // same quality
+        if (one === 0 && 'BANDWIDTH' in b.attributes) {
+          return b.attributes.BANDWIDTH - a.attributes.BANDWIDTH;
+        }
+        return one;
       }
       catch (e) {
         return 0;
@@ -659,18 +770,18 @@ const parser = async (manifest, file, href, codec) => {
             'Video [' +
             playlist.attributes.RESOLUTION.width + ' × ' +
             playlist.attributes.RESOLUTION.height + '] -> ' +
-            trim(playlist.uri)
+            trim(playlist.resolvedUri || playlist.uri)
           );
         }
         else if (playlist.group) {
           msgs.push(
             playlist.group.type.toLowerCase() + ' [' +
             playlist.group.lang.toLowerCase() + '] -> ' +
-            trim(playlist.uri, 30)
+            trim(playlist.resolvedUri || playlist.uri, 30)
           );
         }
         else {
-          msgs.push(trim(playlist.uri));
+          msgs.push(trim(playlist.resolvedUri || playlist.uri));
         }
       }
       n = (playlists.length > 1 ? await prompt('Select one stream:\n\n' + msgs.map((m, n) => n + '. ' + m).join('\n'), {
@@ -687,16 +798,23 @@ const parser = async (manifest, file, href, codec) => {
 
     const v = playlists[Number(n)];
     if (v) {
-      try {
-        const codec = v.attributes?.CODECS;
-        const o = new URL(v.uri, href || undefined);
-        return parser(o.href, file, undefined, codec);
+      if (v.segments && v.segments.length) {
+        p.manifest.segments = v.segments;
       }
-      catch (e) {
-        return parser(v.uri, file, href);
+      else {
+        try {
+          const codec = v.attributes?.CODECS;
+          const o = new URL(v.resolvedUri || v.uri, href || undefined);
+          return parser(o.href, file, undefined, codec);
+        }
+        catch (e) {
+          return parser(v.resolvedUri || v.uri, file, href);
+        }
       }
     }
-    throw Error('UNKNOWN_QUALITY');
+    else {
+      throw Error('UNKNOWN_QUALITY');
+    }
   }
 
   const segments = p.manifest.segments;
@@ -729,7 +847,7 @@ const options = div => {
   };
 
   // this way, the file can get played while download is in progress
-  if (div.meta.ext === 'm3u8' || div.meta.ext === '') {
+  if (div.meta.ext === 'm3u8' || div.meta.ext === 'mpd' || div.meta.ext === '') {
     options.types[0].accept = {
       'video/mkv': ['.mkv']
     };
@@ -798,9 +916,13 @@ document.getElementById('hrefs').onsubmit = async e => {
     }
     else {
       if (
+        div.meta.ext !== 'txt' &&
         div.meta.ext !== 'm3u8' &&
+        div.meta.ext !== 'mpd' &&
         div.o.url.indexOf('.m3u8') === -1 &&
-        div.o.url.indexOf('format=m3u8') === -1
+        div.o.url.indexOf('.mpd') === -1 &&
+        div.o.url.indexOf('format=m3u8') === -1 &&
+        div.o.url.indexOf('format=mpd') === -1
       ) {
         document.title = 'Downloading ' + div.o.url;
         await download([{

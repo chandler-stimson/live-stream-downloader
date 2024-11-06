@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="google" content="notranslate">
   <title>Download a Media</title>
   <link rel="stylesheet" type="text/css" href="index.css">
 </head>
@@ -59,16 +60,24 @@
     <div id="options">
       <div>
         <div>
-          <label for="filename">Filename <a data-href="faq10" target="_blank">Format</a></label>
-          <input type="text" id="filename" title="Filename format
+          <div class="contents" title="Filename format
 
-Acceptable Keywords:
-  [meta.name] (default)
-  [title]
-  [hostname]
-  [q:query|method|default-value]">
-          <label for="threads">Number of Threads (1-5)</label>
-          <input type="number" min="1" max="5" value="3" id="threads" title="Download jobs with multiple threads to increase speed">
+  Acceptable Keywords:
+    [meta.name] (default)
+    [title]
+    [hostname]
+    [q:query|method|default-value]">
+            <label for="filename">Filename <a data-href="faq10" target="_blank">Format</a></label>
+            <input type="text" id="filename">
+          </div>
+          <div class="contents" title="Download jobs with multiple threads to increase speed">
+            <label for="threads">Number of Threads (1-5)</label>
+            <input type="number" min="1" max="5" value="3" id="threads">
+          </div>
+          <div class="contents"  title="Number of network erros for single thread before failing">
+            <label for="error-tolerance">Error Threshold (1-100)</label>
+            <input type="number" min="1" max="100" value="30" id="error-tolerance">
+          </div>
           <div id="power-container">
             <label for="power">Keep Awake</label>
             <input type="checkbox" id="power">
@@ -111,8 +120,9 @@ Acceptable Keywords:
   <script type="text/javascript" src="mget/plugins/cache.js"></script>
   <script type="text/javascript" src="mget/plugins/disk.js"></script>
   <script type="text/javascript" src="mget/plugins/decrypt.js"></script>
-  <!-- M3U8 Parser -->
+  <!-- Parsers -->
   <script type="text/javascript" src="externals/m3u8-parser.js"></script>
+  <script type="text/javascript" src="externals/mpd-parser.js"></script>
   <!-- MP4Box -->
   <!-- <script type="text/javascript" src="externals/mp4box.all.js"></script> -->
   <!-- Page -->
@@ -125,6 +135,7 @@ Acceptable Keywords:
   <script type="text/javascript" src="plugins/unload.js"></script>
   <script type="text/javascript" src="plugins/threads.js"></script>
   <script type="text/javascript" src="plugins/quality.js"></script>
+  <script type="text/javascript" src="plugins/error.js"></script>
   <script type="text/javascript" src="plugins/referer.js"></script>
   <script type="text/javascript" src="plugins/permission.js"></script>
   <script type="text/javascript" src="plugins/drop.js"></script>

@@ -29,6 +29,7 @@ class DGet extends MyGet {
     super(...args);
 
     this['basic-cache'] = {};
+    this['decrypted-offset'] = 0;
   }
   static merge(array) {
     // make sure to remove possible duplicated chunks (in case of error, the same chunk if fetched one more time)
@@ -85,7 +86,21 @@ class DGet extends MyGet {
       delete this['basic-cache'][position];
       const encrypted = await (new Blob(chunks)).arrayBuffer();
 
-      const iv = segment.key?.iv?.buffer || new ArrayBuffer(16);
+      // const iv = segment.key?.iv?.buffer || new ArrayBuffer(16);
+
+      let iv;
+      if (segment.key?.iv) {
+        iv = segment.key?.iv?.buffer;
+      }
+      // since the manifest does not provide an IV,
+      // HLS.js will automatically generate one based on the segment sequence number
+      else {
+        const e = new Uint8Array(16);
+        for (let r = 12; r < 16; r++) {
+          e[r] = (position + 1) >> 8 * (15 - r) & 255;
+        }
+        iv = e.buffer;
+      }
 
       const decrypted = await crypto.subtle.importKey('raw', value, {
         name: 'AES-CBC',
@@ -96,11 +111,16 @@ class DGet extends MyGet {
           iv
         }, importedKey, encrypted);
       });
+      // console.info('position mismatch', offsets[0], this['decrypted-offset']);
 
       // write to the original cache
-      const stream = new self.MemoryWriter(position, offsets[0], this.cache);
+      const stream = new self.MemoryWriter(position, offsets[0] + this['decrypted-offset'], this.cache);
       const writable = await stream.getWriter();
+
       await writable.write(new Uint8Array(decrypted));
+
+      // since we write each segment sequentially, we can fix the write position mismatch here
+      this['decrypted-offset'] += (decrypted.byteLength - encrypted.byteLength);
     }
     else {
       return;

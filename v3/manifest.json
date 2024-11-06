@@ -1,6 +1,6 @@
 {
-  "manifest_version": 2,
-  "version": "0.4.7.2",
+  "manifest_version": 3,
+  "version": "0.5.2",
   "name": "Live Stream Downloader Unleashed!!",
   "description": "__MSG_description__",
   "default_locale": "en",
@@ -27,6 +27,7 @@
   "optional_permissions": [],
   "homepage_url": "https://github.com/helloyanis/live-stream-downloader-unleashed",
   "background": {
+    "service_worker": "worker.js",
     "scripts": [
       "network/core.js",
       "network/icon.js",
@@ -43,6 +44,12 @@
   
   "browser_action": {
     "default_title": "Download HLS Streams"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{2ea2bfef-af69-4427-909c-34e1f3f5a418}",
+      "strict_min_version": "128.0"
+    }
   }
 
 }

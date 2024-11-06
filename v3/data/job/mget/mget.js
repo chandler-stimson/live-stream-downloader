@@ -148,7 +148,7 @@ class MGet {
       start();
     }).catch(e => {
       console.warn(e);
-      this.controller.abort(e?.message || 'Unknown Error');
+      this.controller.abort(Error(e?.message || 'Unknown Error'));
       throw e;
     });
   }
@@ -189,7 +189,7 @@ class MGet {
     } -> http://example.com/a.mp4?expires=1212
   */
   link(segment) {
-    const {href, search} = new URL(segment.uri, segment.base || undefined);
+    const {href, search} = new URL((segment.resolvedUri || segment.uri), segment.base || undefined);
     if (search === '') {
       try {
         const o = new URL(segment.base);
@@ -231,7 +231,9 @@ class MGet {
       credentials: 'include'
     }, extra).then(r => {
       const s = Number(r.headers.get('Content-Length'));
-      const size = isNaN(s) ? 0 : Number(s);
+      const encoding = r.headers.get('Content-Encoding');
+      // for gzip, to prevent PIPE_SIZE_MISMATCH;
+      const size = isNaN(s) || encoding === 'gzip' ? 0 : Number(s);
 
       if (r.ok && this.sizes.has(position) === false) {
         if (size) { // only save size if there is a header for it
@@ -248,8 +250,10 @@ class MGet {
         throw Error('NO_RANGE_SUPPORT_' + r.status);
       }
       else if (r.ok) {
-        // server supports range; report it to the native fetch with "extra.rangable" to prevent fixing broken pipes
-        const rangable = extra.rangable = size && type === 'bytes' && computable !== 'false';
+        // server supports range
+        const rangable = size && (
+          (type === 'bytes' && computable !== 'false') || r.status === 206
+        );
 
         if (rangable && size > this.options['thread-size']) {
           segment.extraThreads = segment.extraThreads || new Set();
@@ -332,14 +336,15 @@ class MGet {
 
             this.monitor(segment, position, chunk, offset);
           });
+
           return r.body.pipeThrough(monitor).pipeTo(writable).then(() => {
             if (this.sizes.has(position) === false) { // save the extracted size for later use
               console.info('SET_SIZE', position, s);
               this.sizes.set(position, s);
             }
             else if (s !== size) {
-              console.info('INVALID_SIZE', s, size, '[Broken Download]');
-              throw Error('INVALID_SIZE');
+              console.error('PIPE_SIZE_MISMATCH', s, size);
+              throw Error('PIPE_SIZE_MISMATCH');
             }
             this.actives -= 1;
           });
@@ -358,7 +363,10 @@ MGet.OPTIONS = {
   'thread-size': 3 * 1024 * 1024, // bytes; size of each segment (do not increase unless check with a large file)
   // thread-timeout: ms for inactivity period before breaking. Do not use small value since it is also used for
   // downloading from server that does not support ranging
-  'thread-timeout': 10000,
+  'thread-timeout': 10000, // ms
+  'thread-initial-timeout': 10000, // ms
+  'error-tolerance': 30, // number of times a single uri can throw error before breaking
+  'error-delay': 300, // ms; min-delay before restarting the segment
   'threads': 2, // number; max number of simultaneous threads
   'next-segment-wait': 2000 // ms; time to wait after a segment is started, before considering the next segment,
 };

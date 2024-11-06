@@ -1,3 +1,45 @@
+/**
+    MyGet - A multi-thread downloading library
+    Copyright (C) 2014-2022 [Chandler Stimson]
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the Mozilla Public License as published by
+    the Mozilla Foundation, either version 2 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Mozilla Public License for more details.
+    You should have received a copy of the Mozilla Public License
+    along with this program.  If not, see {https://www.mozilla.org/en-US/MPL/}.
+
+    GitHub: https://github.com/chandler-stimson/live-stream-downloader/
+    Homepage: https://webextension.org/listing/hls-downloader.html
+*/
+
+/* global network */
+
+if (typeof importScripts !== 'undefined') {
+  self.importScripts('network/core.js');
+  self.importScripts('network/icon.js');
+  self.importScripts('context.js');
+  self.importScripts('/plugins/blob-detector/core.js');
+}
+
+self.notify = (tabId, text, title) => {
+  chrome.action.setBadgeBackgroundColor({
+    color: 'red'
+  });
+  chrome.action.setBadgeText({
+    tabId,
+    text
+  });
+  chrome.action.setTitle({
+    tabId,
+    title
+  });
+};
+
 /* extra objects */
 const extra = {};
 
@@ -76,9 +118,12 @@ const observe = d => {
   }
 
   // unsupported content types
-  if (d.url.includes('.m3u8') === false && d.responseHeaders.some(({name, value}) => {
-    return name === 'content-type' && value && value.startsWith('text/html');
-  })) {
+  if (
+    d.url.includes('.m3u8') === false &&
+    d.url.includes('.mpd') === false &&
+    d.responseHeaders.some(({name, value}) => {
+      return name === 'content-type' && value && value.startsWith('text/html');
+    })) {
     return;
   }
 
@@ -91,9 +136,11 @@ const observe = d => {
       self.storage.set(v.url, v);
       if (self.storage.size > size) {
         for (const [href] of self.storage) {
-          // do not delete important links
-          if (href.includes('.m3u8')) {
-            continue;
+          // do not delete important links (only if total size is less than size + 100)
+          if (self.storage.size < size + 100) {
+            if (href.includes('.m3u8') || href.includes('.mpd')) {
+              continue;
+            }
           }
           self.storage.delete(href);
           if (self.storage.size <= size) {

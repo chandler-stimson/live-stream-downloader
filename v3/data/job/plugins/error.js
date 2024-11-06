@@ -20,15 +20,15 @@
 /* global storage, MyGet */
 
 storage.get({
-  threads: MyGet.OPTIONS.threads
+  'error-tolerance': MyGet.OPTIONS['error-tolerance']
 }).then(prefs => {
-  document.getElementById('threads').value = prefs.threads;
+  document.getElementById('error-tolerance').value = prefs['error-tolerance'];
 
-  document.getElementById('threads').onchange = e => {
-    const threads = Math.max(1, Math.min(5, e.target.valueAsNumber));
-    if (isNaN(threads) === false) {
+  document.getElementById('error-tolerance').onchange = e => {
+    const n = Math.max(1, Math.min(100, e.target.valueAsNumber));
+    if (isNaN(n) === false) {
       storage.set({
-        threads
+        'error-tolerance': n
       });
     }
   };

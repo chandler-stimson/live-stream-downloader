@@ -115,17 +115,6 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
         value: true
       }]);
     });
-    if (navigator.userAgent.includes('Firefox')) {
-      next();
-    }
-    else {
-      browser.permissions.request({
-        permissions: ['scripting']
-      }, granted => {
-        if (granted) {
-          next();
-        }
-      });
-    }
+    next();
   }
 });

@@ -267,9 +267,7 @@ chrome.runtime.onMessage.addListener((request, sender, response) => {
 {
   const once = async () => {
     for (const key of await caches.keys()) {
-      if (key !== network.NAME) {
-        caches.delete(key);
-      }
+      caches.delete(key);
     }
   };
   chrome.runtime.onStartup.addListener(once);

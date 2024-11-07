@@ -274,7 +274,7 @@ const build = async os => {
       clone.querySelector('[data-id=size]').textContent = '-';
     }
     clone.querySelector('[data-id=href]').textContent = clone.querySelector('[data-id=href]').title =
-      o.blocked.value ? o.blocked.reason : (o.url || 'N/A');
+      o.blocked?.value ? o.blocked.reason : (o.url || 'N/A');
 
     clone.querySelector('input[data-id=copy]').onclick = e => navigator.clipboard.writeText(o.url).then(() => {
       e.target.value = 'Done';
@@ -283,9 +283,9 @@ const build = async os => {
 
     div.o = o;
     div.meta = meta;
-    div.dataset.blocked = o.blocked.value;
+    div.dataset.blocked = o.blocked?.value || false;
 
-    if (o.blocked.value) {
+    if (o.blocked?.value) {
       clone.querySelector('input[data-id="copy"]').disabled = true;
       clone.querySelector('input[type=submit]').disabled = true;
     }

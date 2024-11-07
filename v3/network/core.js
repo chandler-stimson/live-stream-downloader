@@ -71,6 +71,8 @@ const network = {
     const hosts = a.filter(o => o.type === 'host');
     const streams = a.filter(o => o.type === 'stream');
 
+    console.log(hosts, streams);
+
     return d => {
       // block same-origin streams for blocked hosts
       if (d.host) {

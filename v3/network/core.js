@@ -19,7 +19,7 @@
 
 const network = {
   // the headers that need to be recorded
-  HEADERS: ['content-length', 'accept-ranges', 'content-type', 'content-disposition'],
+  HEADERS: ['content-length', 'content-range', 'accept-ranges', 'content-type', 'content-disposition'],
   // HOST
   LIST: 'https://cdn.jsdelivr.net/gh/chandler-stimson/live-stream-downloader@latest/v3/network/blocked.json',
   // Cache name

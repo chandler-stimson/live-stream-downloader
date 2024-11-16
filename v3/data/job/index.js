@@ -49,6 +49,9 @@
 
   Encrypted with difference encrypted to decrypted byte length and no iv
   aHR0cHM6Ly92NS52b2lyYW5pbWUuY29tL2FuaW1lL21vYmlsZS1zdWl0LWd1bmRhbS1zZWVkLXZmL21vYmlsZS1zdWl0LWd1bmRhbS1zZWVkLTIwLXZmLyAtPiBMRUNURVVSIE1PT04=
+
+  Only answers to "bytes 0-" for a few seconds. Returns more data than requested for ranged requests. Does not accept a custom range size. Returns less data than requested
+  aHR0cHM6Ly9zbi12aWRlby5jb20vcGFnZS5waHA/MjI5NQ==
 */
 
 const args = new URLSearchParams(location.search);
@@ -267,8 +270,14 @@ const build = async os => {
       }).catch(() => {});
     }
 
-    if (r.headers.has('Content-Length')) {
-      clone.querySelector('[data-id=size]').textContent = MyGet.size(r.headers.get('Content-Length') || '0');
+    // we might have recorded a segment of the player, hence the 'Content-Length' header is wrong
+    if (r.headers.has('Content-Range')) {
+      clone.querySelector('[data-id=size]').textContent = MyGet.size(
+        r.headers.get('Content-Range')?.split('/')[1]
+      );
+    }
+    else if (r.headers.has('Content-Length')) {
+      clone.querySelector('[data-id=size]').textContent = MyGet.size(r.headers.get('Content-Length'));
     }
     else {
       clone.querySelector('[data-id=size]').textContent = '-';

@@ -160,6 +160,16 @@ class EGet extends MyGet {
         let offset = 0;
         let controller;
         let active = true;
+        let start = 0;
+        let end;
+        if (request.headers.has('Range')) {
+          const range = request.headers.get('Range');
+          const [ss, se] = range.split('=')[1].split('-');
+          start = Number(ss);
+          if (se) {
+            end = Number(se);
+          }
+        }
 
         // try to fix broken pipe after data flow
         const recover = async e => {
@@ -176,13 +186,11 @@ class EGet extends MyGet {
           const delay = Math.min(20000, options['error-delay'] * counter);
           await new Promise(resolve => setTimeout(resolve, delay));
 
-
           try {
             if (offset) {
-              const range = request.headers.get('Range') || 'bytes=0-';
-              const [start, end] = range.split('=')[1].split('-');
-              request.headers.set('Range', 'bytes=' + (Number(start) + offset) + '-' + end);
+              start += offset;
               offset = 0;
+              request.headers.set('Range', 'bytes=' + start + '-' + (end || ''));
             }
 
             response = await native();
@@ -239,13 +247,36 @@ class EGet extends MyGet {
           // pump
           return reader.read().then(({done, value}) => {
             if (done) {
+              // what if server returns done but the range is not full-field
+              if (response.ok && end) {
+                if (start + offset < end) {
+                  recover(Error('SMALL_SEGMENT'));
+                  return;
+                }
+              }
               try {
                 controller.close();
               }
               catch (e) {}
+
               return;
             }
             errors.set(request.url, 0);
+
+            // what if server returns more data than needed
+            if (end) {
+              if (start + offset + value.byteLength + 1 > end) {
+                const v = value.slice(0, end - start - offset + 1);
+                offset += v.byteLength;
+
+                controller.enqueue(v);
+                controller.close();
+                console.info('[error plugin]', 'server returns more data than requested');
+                // terminate the request to prevent extra data fetching
+                timeout.controller.abort(Error('EXTRA_DATA'));
+                return;
+              }
+            }
 
             controller.enqueue(value);
             offset += value.byteLength;

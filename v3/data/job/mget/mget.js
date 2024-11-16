@@ -19,8 +19,7 @@
 
 /* transfer the stream only when conditions met */
 class PolicyStream extends TransformStream {
-  constructor(size) {
-    let fetched = 0;
+  constructor(size, fetched = 0) {
     super({
       async transform(chunk, controller) {
         fetched += chunk.byteLength;
@@ -230,7 +229,31 @@ class MGet {
       signal: this.controller.signal,
       credentials: 'include'
     }, extra).then(r => {
-      const s = Number(r.headers.get('Content-Length'));
+      let s;
+      if (r.headers.has('Content-Length')) {
+        s = r.headers.get('Content-Length');
+      }
+      // the server might only return Content-Range
+      else if (r.headers.has('Content-Range')) {
+        const [ss, se, sr] = r.headers.get('Content-Range').replace('bytes ', '').split(/[-/]/);
+
+        // server
+        if (ss === '0' && se) { ///////////////////////////
+          s = sr;
+          const v = Number(se) - Number(ss) + 1;
+          if (this.options['thread-size'] > v) {
+            this.options['thread-size'] = v;
+            console.info('LOWERING_THREAD_SIZE', v);
+          }
+        }
+        else if (ss && se) {
+          s = (Number(se) - Number(ss) + 1).toString();
+        }
+        else {
+          s = sr;
+        }
+      }
+
       const encoding = r.headers.get('Content-Encoding');
       // for gzip, to prevent PIPE_SIZE_MISMATCH;
       const size = isNaN(s) || encoding === 'gzip' ? 0 : Number(s);
@@ -343,7 +366,7 @@ class MGet {
               this.sizes.set(position, s);
             }
             else if (s !== size) {
-              console.error('PIPE_SIZE_MISMATCH', s, size);
+              console.error('PIPE_SIZE_MISMATCH', s, size, segment.range, r);
               throw Error('PIPE_SIZE_MISMATCH');
             }
             this.actives -= 1;

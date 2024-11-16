@@ -121,6 +121,7 @@ const observe = d => {
   if (
     d.url.includes('.m3u8') === false &&
     d.url.includes('.mpd') === false &&
+    d.type !== 'media' &&
     d.responseHeaders.some(({name, value}) => {
       return name === 'content-type' && value && value.startsWith('text/html');
     })) {

@@ -52,6 +52,9 @@
 
   Only answers to "bytes 0-" for a few seconds. Returns more data than requested for ranged requests. Does not accept a custom range size. Returns less data than requested
   aHR0cHM6Ly9zbi12aWRlby5jb20vcGFnZS5waHA/MjI5NQ==
+
+  Extract link from videojs
+  aHR0cHM6Ly93YWF3LnRvL3dhdGNoX3ZpZGVvLnBocD92PWNYb3ZTRzFGZEd0UGNGZDNWbkpuTjB4MmF6TlFUM1JDZEV0UWFGVlpWbXB3YVRVd2FIY3JNazlCU0ZKMFlrbHdhakJpUVUxWVRXbGpkeXRzTHpSeFZ3JTNEJTNEI2lzcz1NVEEwTGpJNExqSXpOUzQxT0E9PQ==
 */
 
 const args = new URLSearchParams(location.search);
@@ -248,26 +251,33 @@ const build = async os => {
     const r = response(o instanceof File ? {
       url: 'local/' + o.name
     } : o);
-    MyGet.guess(r, meta);
 
-    name();
-    // optional online naming (for the first 20 items)
-    if (naming < 20 && r.url.startsWith('http') && document.getElementById('online-resolve-name').checked) {
-      naming += 1;
+    // we already have the content-type so perform offline naming
+    if (r.headers.get('Content-Type')) {
+      MyGet.guess(r, meta);
+      name();
+    }
+    else {
+      // offline naming without meta extraction until we get a response from the server
+      name();
+      // optional online naming (for the first 20 items)
+      if (naming < 20 && r.url.startsWith('http') && document.getElementById('online-resolve-name').checked) {
+        naming += 1;
 
-      const controller = new AbortController();
-      const signal = controller.signal;
+        const controller = new AbortController();
+        const signal = controller.signal;
 
-      fetch(r.url, {
-        method: 'GET',
-        signal
-      }).then(r => {
-        if (r.ok) {
-          MyGet.guess(r, meta);
-          name();
-        }
-        controller.abort();
-      }).catch(() => {});
+        fetch(r.url, {
+          method: 'GET',
+          signal
+        }).then(r => {
+          if (r.ok) {
+            MyGet.guess(r, meta);
+            name();
+          }
+          controller.abort();
+        }).catch(() => {});
+      }
     }
 
     // we might have recorded a segment of the player, hence the 'Content-Length' header is wrong
@@ -351,7 +361,7 @@ Promise.all([
     world: 'MAIN',
     args: [types]
   }).then(a => a[0].result).catch(() => [])),
-  // get jwplayer playlist
+  // get jwplayer and videojs playlists
   chrome.scripting.executeScript({
     target: {
       tabId,
@@ -362,15 +372,66 @@ Promise.all([
       const list = [];
       try {
         for (const o of self.jwplayer().getPlaylist()) {
-          list.push({
-            initiator: location.href,
-            url: new URL(o.file, location.href).href,
-            timeStamp: performance.timing.domComplete,
-            source: 'jwplayer'
-          });
+          if (o.file) {
+            list.push({
+              initiator: location.href,
+              url: new URL(o.file, location.href).href,
+              timeStamp: performance.timing.domComplete,
+              source: 'jwplayer'
+            });
+          }
+          if (o.sources) {
+            for (const p of o.sources) {
+              if (p.file) {
+                list.push({
+                  initiator: location.href,
+                  url: new URL(p.file, location.href).href,
+                  timeStamp: performance.timing.domComplete,
+                  source: 'jwplayer'
+                });
+              }
+            }
+          }
         }
       }
       catch (e) {}
+
+      // videojs
+      const apd = v => {
+        try {
+          const o = v.tech().currentSource_;
+          if (o) {
+            const m = {
+              initiator: location.href,
+              url: o.src,
+              timeStamp: performance.timing.domComplete,
+              source: 'videojs'
+            };
+            if (o.type) {
+              m.responseHeaders = [{
+                name: 'Content-Type',
+                value: o.type
+              }];
+            }
+            list.push(m);
+          }
+        }
+        catch (e) {}
+      };
+
+      try {
+        for (const v of self.videojs.getAllPlayers()) {
+          apd(v);
+        }
+      }
+      catch (e) {}
+      for (const e of document.querySelectorAll('video-js, .video-js')) {
+        const o = e.player;
+        if (o) {
+          apd(o);
+        }
+      }
+
       return list;
     },
     world: 'MAIN'

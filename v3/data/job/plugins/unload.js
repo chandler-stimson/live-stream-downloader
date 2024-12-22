@@ -20,13 +20,18 @@
 /* global events */
 
 // prevent closing
-events.before.add(() => {
-  window.onbeforeunload = () => 'Downloading...';
-});
-
-events.after.add(() => {
-  window.onbeforeunload = null;
-});
+{
+  const stop = e => {
+    e.preventDefault();
+    e.returnValue = 'Downloading...';
+  };
+  events.before.add(() => {
+    addEventListener('beforeunload', stop);
+  });
+  events.after.add(() => {
+    removeEventListener('beforeunload', stop);
+  });
+}
 // auto close on success
 const done = (success, done) => {
   window.onbeforeunload = null;

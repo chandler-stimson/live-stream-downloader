@@ -71,8 +71,18 @@
       });
     }
   });
-  chrome.runtime.onInstalled.addListener(() => chrome.alarms.create('update-network', {
-    when: Date.now() + 1000,
-    periodInMinutes: 60 * 24 * 7 // every 7 days
-  }));
+  const ucheck = () => {
+    if (ucheck.done) {
+      return;
+    }
+    ucheck.done = true;
+
+    chrome.alarms.create('update-network', {
+      when: Date.now() + 30000,
+      periodInMinutes: 60 * 24 * 7 // every 7 days
+    });
+  };
+
+  chrome.runtime.onInstalled.addListener(ucheck);
+  chrome.runtime.onStartup.addListener(ucheck);
 }

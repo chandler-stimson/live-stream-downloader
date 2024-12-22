@@ -338,6 +338,7 @@ Promise.all([
     injectImmediately: true,
     func: types => performance.getEntriesByType('resource')
       .filter(o => o.initiatorType === 'video' ||
+        o.initiatorType === 'audio' ||
         o.initiatorType === 'other' ||
         o.initiatorType === 'xmlhttprequest' ||
         o.contentType?.startsWith('video/') ||

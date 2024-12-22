@@ -60,9 +60,11 @@ else {
     method: 'release-awake-if-possible'
   }, () => chrome.runtime.lastError));
 
-  addEventListener('beforeunload', () => chrome.runtime.sendMessage({
-    method: 'release-awake-if-possible'
-  }, () => chrome.runtime.lastError));
+  // check after 1 minute
+  // in case there is an active downloading job and the warning prevents the window from being closed
+  addEventListener('beforeunload', () => chrome.alarms.create('release-awake-if-possible', {
+    when: Date.now() + 60000
+  }));
 
   chrome.runtime.onMessage.addListener((request, sender, response) => {
     if (request.method === 'any-active' && document.body.dataset.mode === 'download') {

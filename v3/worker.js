@@ -123,7 +123,7 @@ const observe = d => {
     d.url.includes('.mpd') === false &&
     d.type !== 'media' &&
     d.responseHeaders.some(({name, value}) => {
-      return name === 'content-type' && value && value.startsWith('text/html');
+      return (name === 'content-type' || name === 'Content-Type') && value && value.startsWith('text/html');
     })) {
     return;
   }
@@ -162,7 +162,7 @@ const observe = d => {
 };
 observe.mime = d => {
   for (const {name, value} of d.responseHeaders) {
-    if (name === 'content-type' && value && (
+    if ((name === 'content-type' || name === 'Content-Type') && value && (
       value.startsWith('video/') || value.startsWith('audio/')
     )) {
       return observe(d);
@@ -237,18 +237,22 @@ network.types({
   chrome.storage.onChanged.addListener(ps => ps['mime-watch'] && run());
 }
 
+const raip = () => {
+  if (chrome.power) {
+    chrome.runtime.sendMessage({
+      method: 'any-active'
+    }, r => {
+      chrome.runtime.lastError;
+      if (r !== true) {
+        chrome.power.releaseKeepAwake();
+      }
+    });
+  }
+};
+
 chrome.runtime.onMessage.addListener((request, sender, response) => {
   if (request.method === 'release-awake-if-possible') {
-    if (chrome.power) {
-      chrome.runtime.sendMessage({
-        method: 'any-active'
-      }, r => {
-        chrome.runtime.lastError;
-        if (r !== true) {
-          chrome.power.releaseKeepAwake();
-        }
-      });
-    }
+    raip();
   }
   else if (request.method === 'get-extra') {
     response(extra[request.tabId] || []);
@@ -261,6 +265,11 @@ chrome.runtime.onMessage.addListener((request, sender, response) => {
       tabId: sender.tab.id,
       initiator: sender.url
     });
+  }
+});
+chrome.alarms.onAlarm.addListener(a => {
+  if (a.name === 'release-awake-if-possible') {
+    raip();
   }
 });
 

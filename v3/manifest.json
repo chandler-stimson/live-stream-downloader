@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "version": "0.5.3",
+  "version": "0.5.4",
   "name": "Live Stream Downloader",
   "description": "__MSG_description__",
   "default_locale": "en",
@@ -17,18 +17,7 @@
     "power"
   ],
   "host_permissions": [
-    "*://*/*.flv*",
-    "*://*/*.avi*",
-    "*://*/*.wmv*",
-    "*://*/*.mov*",
-    "*://*/*.mp4*",
-    "*://*/*.pcm*",
-    "*://*/*.wav*",
-    "*://*/*.mp3*",
-    "*://*/*.aac*",
-    "*://*/*.ogg*",
-    "*://*/*.wma*",
-    "*://*/*.m3u8*"
+    "*://*/*"
   ],
   "homepage_url": "https://webextension.org/listing/hls-downloader.html",
   "background": {

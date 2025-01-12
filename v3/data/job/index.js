@@ -55,6 +55,9 @@
 
   Extract link from videojs
   aHR0cHM6Ly93YWF3LnRvL3dhdGNoX3ZpZGVvLnBocD92PWNYb3ZTRzFGZEd0UGNGZDNWbkpuTjB4MmF6TlFUM1JDZEV0UWFGVlpWbXB3YVRVd2FIY3JNazlCU0ZKMFlrbHdhakJpUVUxWVRXbGpkeXRzTHpSeFZ3JTNEJTNEI2lzcz1NVEEwTGpJNExqSXpOUzQxT0E9PQ==
+
+  MPD with audio playlist
+  aHR0cHM6Ly90cHR2ZW5jb3JlLmNvLnVrL3Byb2R1Y3QvbWVldC1qb2huLWRvZS02MzMzNDU2MTEzMTEy
 */
 
 const args = new URLSearchParams(location.search);
@@ -800,13 +803,15 @@ const parser = async (manifest, file, href, codec) => {
       try {
         Object.values(group).forEach(g => {
           for (const [lang, o] of Object.entries(g)) {
-            playlists.push({
-              ...o,
-              group: {
-                lang,
-                type
-              }
-            });
+            for (const c of (o.playlists || [o])) {
+              playlists.push({
+                ...c,
+                group: {
+                  lang,
+                  type
+                }
+              });
+            }
           }
         });
       }
@@ -867,14 +872,22 @@ const parser = async (manifest, file, href, codec) => {
           msgs.push(
             'Video [' +
             playlist.attributes.RESOLUTION.width + ' × ' +
-            playlist.attributes.RESOLUTION.height + '] -> ' +
+            playlist.attributes.RESOLUTION.height + ']   ' +
             trim(playlist.resolvedUri || playlist.uri)
           );
         }
         else if (playlist.group) {
+          const features = [playlist.group.lang.toLowerCase()];
+          if (playlist.attributes?.CODECS) {
+            features.push(playlist.attributes?.CODECS);
+          }
+          if (playlist.attributes?.BANDWIDTH) {
+            features.push(playlist.attributes?.BANDWIDTH);
+          }
+
           msgs.push(
             playlist.group.type.toLowerCase() + ' [' +
-            playlist.group.lang.toLowerCase() + '] -> ' +
+            features.join(' - ') + ']   ' +
             trim(playlist.resolvedUri || playlist.uri, 30)
           );
         }

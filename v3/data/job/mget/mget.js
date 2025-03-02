@@ -229,17 +229,18 @@ class MGet {
       signal: this.controller.signal,
       credentials: 'include'
     }, extra).then(r => {
-      let s;
+      const sizes = [];
+
       if (r.headers.has('Content-Length')) {
-        s = r.headers.get('Content-Length');
+        sizes.push(r.headers.get('Content-Length'));
       }
-      // the server might only return Content-Range
-      else if (r.headers.has('Content-Range')) {
+      // the server might only return Content-Range or the size returned by content size is limited to a segment
+      if (r.headers.has('Content-Range')) {
         const [ss, se, sr] = r.headers.get('Content-Range').replace('bytes ', '').split(/[-/]/);
 
         // server
-        if (ss === '0' && se) { ///////////////////////////
-          s = sr;
+        if (ss === '0' && se) {
+          sizes.push(sr);
           const v = Number(se) - Number(ss) + 1;
           if (this.options['thread-size'] > v) {
             this.options['thread-size'] = v;
@@ -247,15 +248,18 @@ class MGet {
           }
         }
         else if (ss && se) {
-          s = (Number(se) - Number(ss) + 1).toString();
+          sizes.push((Number(se) - Number(ss) + 1));
         }
         else {
-          s = sr;
+          sizes.push(sr);
         }
       }
-
       const encoding = r.headers.get('Content-Encoding');
+
+
+      // Size is the maximum of whatever is returned by 'Content-Length' and 'Content-Range'
       // for gzip, to prevent PIPE_SIZE_MISMATCH;
+      const s = Math.max(...sizes.map(Number).filter(s => !isNaN(s)));
       const size = isNaN(s) || encoding === 'gzip' ? 0 : Number(s);
 
       if (r.ok && this.sizes.has(position) === false) {

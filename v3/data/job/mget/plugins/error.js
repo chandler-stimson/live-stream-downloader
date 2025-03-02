@@ -271,7 +271,11 @@ class EGet extends MyGet {
 
                 controller.enqueue(v);
                 controller.close();
-                console.info('[error plugin]', 'server returns more data than requested');
+                console.info(
+                  '[error plugin]',
+                  'server returns more data than requested',
+                  start + offset + value.byteLength + 1 - end, 'bytes'
+                );
                 // terminate the request to prevent extra data fetching
                 timeout.controller.abort(Error('EXTRA_DATA'));
                 return;

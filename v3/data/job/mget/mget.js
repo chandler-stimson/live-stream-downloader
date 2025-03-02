@@ -230,7 +230,6 @@ class MGet {
       credentials: 'include'
     }, extra).then(r => {
       const sizes = [];
-
       if (r.headers.has('Content-Length')) {
         sizes.push(r.headers.get('Content-Length'));
       }
@@ -259,7 +258,8 @@ class MGet {
 
       // Size is the maximum of whatever is returned by 'Content-Length' and 'Content-Range'
       // for gzip, to prevent PIPE_SIZE_MISMATCH;
-      const s = Math.max(...sizes.map(Number).filter(s => !isNaN(s)));
+      const ss = sizes.map(Number).filter(s => !isNaN(s));
+      const s = ss.length ? Math.max(...ss) : '';
       const size = isNaN(s) || encoding === 'gzip' ? 0 : Number(s);
 
       if (r.ok && this.sizes.has(position) === false) {

@@ -259,11 +259,9 @@ const build = async os => {
     } : o);
 
     // we already have the content-type so perform offline naming
-    if (r.headers.get('Content-Type')) {
-      MyGet.guess(r, meta);
-      name();
-    }
-    else {
+    MyGet.guess(r, meta);
+    name();
+    if (!r.headers.get('Content-Type')) {
       // offline naming without meta extraction until we get a response from the server
       name();
       // optional online naming (for the first 20 items)
@@ -711,7 +709,7 @@ Use the box below to update the URL`, {
             if (confirm(`Rename media from "${file.name}" to "${name}"?
 
 -> This will overwrite an existing file with the same name.`)) {
-              file.move(name);
+              file.move(name).catch(e => self.notify(e.message));
               e.target.disabled = true;
             }
           };
@@ -784,7 +782,8 @@ const parser = async (manifest, file, href, codec) => {
   document.body.dataset.mode = 'parse';
 
   let p;
-  if (href.includes('.mpd')) {
+
+  if (href && (href.includes('.mpd')) || (manifest.includes('<MPD'))) {
     p = {
       manifest: mpdParser.parse(manifest, {
         manifestUri: href
@@ -961,7 +960,16 @@ const options = div => {
   };
 
   // this way, the file can get played while download is in progress
-  if (div.meta.ext === 'm3u8' || div.meta.ext === 'mpd' || div.meta.ext === '') {
+  if (div.meta.ext === 'm3u8' || div.meta.ext === 'mpd') {
+    options.types[0].accept = {
+      'video/MP2T': ['.ts']
+    };
+    options.suggestedName =
+      (div.meta.gname || div.meta.name || 'Untitled') +
+      (div.meta.index ? (' - ' + div.meta.index) : '') +
+      '.ts';
+  }
+  else if (div.meta.ext === '') {
     options.types[0].accept = {
       'video/mkv': ['.mkv']
     };
@@ -1033,10 +1041,15 @@ document.getElementById('hrefs').onsubmit = async e => {
         div.meta.ext !== 'txt' &&
         div.meta.ext !== 'm3u8' &&
         div.meta.ext !== 'mpd' &&
-        div.o.url.indexOf('.m3u8') === -1 &&
-        div.o.url.indexOf('.mpd') === -1 &&
-        div.o.url.indexOf('format=m3u8') === -1 &&
-        div.o.url.indexOf('format=mpd') === -1
+        div.o.url.includes('.m3u8') === false &&
+        div.o.url.includes('.mpd') === false &&
+        div.o.url.includes('format=m3u8') === false &&
+        div.o.url.includes('format=mpd') === false &&
+        div.o.url.includes('data:application/dash+xml') === false &&
+        div.o.url.includes('data:application/vnd.apple.mpegurl') === false &&
+        div.o.url.includes('data:x-mpegURL') === false &&
+        div.o.url.includes('data:audio/mpegurl') === false &&
+        div.o.url.includes('data:audio/x-mpegurl') === false
       ) {
         document.title = 'Downloading ' + div.o.url;
         await download([{

@@ -35,6 +35,7 @@ const MIME_TYPES = {
   'application/vnd.ms-excel': 'xls',
   'application/vnd.ms-powerpoint': 'ppt',
   'application/vnd.apple.mpegurl': 'm3u8',
+  'application/dash+xml': 'mpd',
   'application/x-mpegURL': 'm3u8',
   'application/x-7z-compressed': '7z',
   'application/x-rar-compressed': 'rar',

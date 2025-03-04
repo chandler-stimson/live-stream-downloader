@@ -17,9 +17,9 @@
     Homepage: https://webextension.org/listing/hls-downloader.html
 */
 
-/* global storage, MyGet */
+/* global MyGet */
 
-storage.get({
+chrome.storage.local.get({
   'error-tolerance': MyGet.OPTIONS['error-tolerance']
 }).then(prefs => {
   document.getElementById('error-tolerance').value = prefs['error-tolerance'];
@@ -27,7 +27,7 @@ storage.get({
   document.getElementById('error-tolerance').onchange = e => {
     const n = Math.max(1, Math.min(100, e.target.valueAsNumber));
     if (isNaN(n) === false) {
-      storage.set({
+      chrome.storage.local.set({
         'error-tolerance': n
       });
     }

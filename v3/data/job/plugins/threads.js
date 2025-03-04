@@ -17,9 +17,9 @@
     Homepage: https://webextension.org/listing/hls-downloader.html
 */
 
-/* global storage, MyGet */
+/* global MyGet */
 
-storage.get({
+chrome.storage.local.get({
   threads: MyGet.OPTIONS.threads
 }).then(prefs => {
   document.getElementById('threads').value = prefs.threads;
@@ -27,7 +27,7 @@ storage.get({
   document.getElementById('threads').onchange = e => {
     const threads = Math.max(1, Math.min(5, e.target.valueAsNumber));
     if (isNaN(threads) === false) {
-      storage.set({
+      chrome.storage.local.set({
         threads
       });
     }

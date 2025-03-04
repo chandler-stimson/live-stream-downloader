@@ -17,15 +17,13 @@
     Homepage: https://webextension.org/listing/hls-downloader.html
 */
 
-/* global storage */
-
-storage.get({
+chrome.storage.local.get({
   'mime-watch': false
 }).then(prefs => {
   document.getElementById('mime-watch').checked = prefs['mime-watch'];
 
   document.getElementById('mime-watch').onchange = e => {
-    storage.set({
+    chrome.storage.local.set({
       'mime-watch': e.target.checked
     });
   };

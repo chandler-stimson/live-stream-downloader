@@ -17,9 +17,7 @@
     Homepage: https://webextension.org/listing/hls-downloader.html
 */
 
-/* global storage */
-
-storage.get({
+chrome.storage.local.get({
   'filename': '[meta.name]',
   'online-resolve-name': true
 }).then(prefs => {
@@ -28,7 +26,7 @@ storage.get({
 });
 
 const changed = target => {
-  storage.set({
+  chrome.storage.local.set({
     filename: target.value || '[meta.name]'
   }).then(() => self.notify('Done, Reopen this window to apply', 2000));
 };

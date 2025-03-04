@@ -8,7 +8,10 @@
   <link rel="stylesheet" type="text/css" href="index.css">
 </head>
 <body data-mode="ready">
-  <progress id="progress" value="0" max="100"></progress>
+  <div id="progress">
+    <progress id="global-progress" value="0" max="0"></progress>
+    <progress id="current-progress" value="0" max="100"></progress>
+  </div>
 
   <div id="forbidden-container">This page includes <span id="forbiddens">0</span> link(s) that are excluded per the website owner's request.</div>
 
@@ -39,11 +42,11 @@
       <p></p>
       <input name="value" type="text" autofocus>
       <menu>
-        <button value="default" type="submit">Confirm</button>
-        <button value="extra" data-id="extra-0"></button>
-        <button value="extra" data-id="extra-1"></button>
-        <button value="extra" data-id="extra-2"></button>
-        <button value="cancel">Cancel</button>
+        <button type="submit" value="default" accesskey="c" title="Enter"><u>C</u>onfirm</button>
+        <button type="submit" value="extra" data-id="extra-0" accesskey="0" title="Alt + 0 or Control + Option + 0"></button>
+        <button type="submit" value="extra" data-id="extra-1" accesskey="1" title="Alt + 1 or Control + Option + 1"></button>
+        <button type="submit" value="extra" data-id="extra-2" accesskey="2" title="Alt + 2 or Control + Option + 2"></button>
+        <button type="button" value="cancel" title="Escape">Cancel</button>
       </menu>
     </form>
   </dialog>
@@ -51,13 +54,13 @@
     <form id="hrefs"></form>
   </div>
   <div id="tools">
-    <input type="button" value="Select None" id="select-none">
-    <input type="button" value="Select All" id="select-all">
+    <button id="select-none" accesskey="n" title="Alt + N or Control + Option + N">Select <u>N</u>one</button>
+    <button id="select-all" accesskey="a" title="Alt + A or Control + Option + A">Select <u>A</u>ll</button>
     &bull;
-    <input type="button" value="Remove Duplicates" id="remove-duplicates">
-    <input type="button" value="Keep M3U8" id="keep-hls">
+    <button id="remove-duplicates" accesskey="r" title="Alt + R or Control + Option + R"><u>R</u>emove Duplicates</button>
+    <button id="keep-hls" accesskey="m" title="Alt + M or Control + Option + M">Keep <u>M</u>3U8</button>
     &bull;
-    <input type="button" value="Download All" disabled id="download-all">
+    <button  id="download-all" disabled accesskey="d" title="Alt + D or Control + Option + D"><u>D</u>ownload Selected</button>
   </div>
   <footer>
     <div id="options">
@@ -129,8 +132,12 @@
   <!-- MP4Box -->
   <!-- <script type="text/javascript" src="externals/mp4box.all.js"></script> -->
   <!-- Page -->
-  <script type="text/javascript" src="file-picker-polyfill.js"></script>
   <script type="text/javascript" src="/network/core.js"></script>
+  <script type="text/javascript" src="file-picker-polyfill.js"></script>
+  <script type="text/javascript" src="helper.js"></script>
+  <script type="text/javascript" src="extract.js"></script>
+  <script type="text/javascript" src="parse.js"></script>
+  <script type="text/javascript" src="build.js"></script>
   <script type="text/javascript" src="index.js"></script>
   <!-- Plugins -->
   <!-- <script type="text/javascript" src="plugins/codec.js"></script> -->

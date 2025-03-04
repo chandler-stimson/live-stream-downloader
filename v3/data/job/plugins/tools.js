@@ -17,7 +17,7 @@
     Homepage: https://webextension.org/listing/hls-downloader.html
 */
 
-/* global error, options, events */
+/* global error, helper, events */
 
 {
   const hrefs = document.getElementById('hrefs');
@@ -44,14 +44,14 @@
         }
       }
       const validate = div => {
-        const name = options(div).suggestedName;
+        const name = helper.options(div).suggestedName;
 
         filenames[name] = name in filenames ? filenames[name] : -1;
         filenames[name] += 1;
 
         div.meta.index = filenames[name];
 
-        const n = options(div).suggestedName;
+        const n = helper.options(div).suggestedName;
         if (n in filenames) {
           if (filenames[name]) {
             validate(div);
@@ -70,21 +70,24 @@
         if (divs.length) {
           const div = divs.shift();
 
-          self.aFile = await dir.getFileHandle(options(div).suggestedName, {
+          self.aFile = await dir.getFileHandle(helper.options(div).suggestedName, {
             create: true
           });
           self.aFile.stat = {
             index: next.total - divs.length,
             total: next.total
           };
+          document.getElementById('global-progress').value = self.aFile.stat.index;
 
           div.querySelector('[type=submit]').click();
         }
         else {
           delete self.aFile;
+          document.getElementById('global-progress').value = 0;
         }
       };
-      next.total = divs.length;
+      document.getElementById('global-progress').max = next.total = divs.length;
+
       events.after.add(next);
       next();
     }

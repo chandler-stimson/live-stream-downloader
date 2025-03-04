@@ -94,7 +94,7 @@ class SGet extends MyGet {
     const e = /(.+)\.([^.]{1,6})*$/.exec(name);
 
     name = e ? e[1] : name;
-    meta.mime = resp.headers.get('Content-Type') || '';
+    meta.mime = resp.headers.get('Content-Type') || meta.mime || '';
     meta.ext = e ? e[2] : (MIME_TYPES[meta.mime] || meta.mime.split('/')[1] || '').split(';')[0];
     meta.ext = meta.ext.slice(0, 15); // cannot be longer than 16 characters.
     //

@@ -6,7 +6,8 @@
   --bg-dark: #4d5155;
   --bg-light: #fff;
   --bg-progress: #0074cc;
-  --bg-progress-body: #355975;
+  --bg-progress-alt: #fff;
+  --bg-progress-body: #ffffff0d;
   --disabled: 0.5;
 }
 
@@ -84,6 +85,7 @@ input[type=button] {
   box-shadow: rgba(0, 0, 0, 0.08) 0 1px 0, rgba(255, 255, 255, 0.75) 0 1px 2px inset;
   text-shadow: rgb(240, 240, 240) 0 1px 0;
 }
+button:not(:disabled),
 input[type=submit]:not(:disabled),
 input[type=button]:not(:disabled) {
   cursor: pointer;
@@ -95,6 +97,7 @@ textarea,
 input {
   border: solid 1px rgba(0, 0, 0, 0.25);
 }
+button:disabled,
 input[type=submit]:disabled,
 input[type=button]:disabled {
   opacity: var(--disabled);
@@ -244,20 +247,28 @@ body:not([data-mode=empty]) #intro {
 
 #progress {
   z-index: 10;
-  color: var(--bg-progress);
+  display: grid;
+}
+#progress progress {
   height: 5px;
   border: none;
   width: 100%;
 }
-#progress,
-#progress::-webkit-progress-bar {
+#progress progress,
+#progress progress::-webkit-progress-bar {
   background-color: var(--bg-progress-body);
 }
-#progress::-webkit-progress-value {
+#current-progress::-webkit-progress-value {
   background: var(--bg-progress);
 }
-#progress::-moz-progress-bar {
+#current-progress::-moz-progress-bar {
   background: var(--bg-progress);
+}
+#global-progress::-webkit-progress-value {
+  background: var(--bg-progress-alt);
+}
+#global-progress::-moz-progress-bar {
+  background: var(--bg-progress-alt);
 }
 
 body[data-mode=download] {
@@ -266,7 +277,7 @@ body[data-mode=download] {
 body:not([data-mode=download]) #progress {
   display: none;
 }
-#progress[value="0"] {
+#progress progress[value="0"] {
   display: none;
 }
 

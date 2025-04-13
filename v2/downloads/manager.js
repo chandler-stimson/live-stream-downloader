@@ -305,6 +305,9 @@ downloads.search = (options = {}, callback = () => {}) => {
   if ('state' in options) {
     ds = ds.filter(({state}) => options.state === state);
   }
+  if ('excludeSmallFiles' in options && options.excludeSmallFiles) {
+    ds = ds.filter(({name}) => !name.endsWith('.ts') && !name.endsWith('.m4s'));
+  }
   callback(ds);
 };
 downloads.cancel = (id, callback) => {

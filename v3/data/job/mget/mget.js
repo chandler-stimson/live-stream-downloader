@@ -188,7 +188,13 @@ class MGet {
     } -> http://example.com/a.mp4?expires=1212
   */
   link(segment) {
-    const {href, search} = new URL((segment.resolvedUri || segment.uri), segment.base || undefined);
+    // appending base arguments causes issue. see:
+    // https://github.com/chandler-stimson/live-stream-downloader/issues/144
+    if (segment.resolvedUri) {
+      const {href} = new URL((segment.resolvedUri || segment.uri), segment.base || undefined);
+      return href;
+    }
+    const {href, search} = new URL(segment.uri, segment.base || undefined);
     if (search === '') {
       try {
         const o = new URL(segment.base);

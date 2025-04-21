@@ -18,13 +18,11 @@
 */
 
 chrome.storage.local.get({
-  quality: 'selector' // 'selector', 'highest', 'lowest'
+  'default-format': 'mkv'
 }).then(prefs => {
-  document.getElementById('quality').value = prefs.quality;
+  document.getElementById('default-format').value = prefs['default-format'];
+});
 
-  document.getElementById('quality').onchange = e => {
-    chrome.storage.local.set({
-      quality: e.target.value
-    });
-  };
+document.getElementById('default-format').onchange = e => chrome.storage.local.set({
+  'default-format': e.target.value
 });

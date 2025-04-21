@@ -7,7 +7,7 @@
   aHR0cHM6Ly9zb3VuZGNsb3VkLmNvbS9uYmEteW91bmdib3kveW91bmdib3ktbmV2ZXItYnJva2UtYWdhaW4=
 
   Encrypted without provided iv
-  aHR0cDovL2RlbW8udGhlb3BsYXllci5jb20vZHJtLWFlcy1wcm90ZWN0aW9uLTEyOC1lbmNyeXB0aW9u
+    aHR0cDovL2RlbW8udGhlb3BsYXllci5jb20vZHJtLWFlcy1wcm90ZWN0aW9uLTEyOC1lbmNyeXB0aW9u
 
   Encrypted with discontinuity and audio and subtitle media groups
     aHR0cHM6Ly93d3cuc2JzLmNvbS5hdS9vbmRlbWFuZC93YXRjaC85MTUxNzAzNzE4MzQ=
@@ -18,27 +18,32 @@
   https://raw.githubusercontent.com/ooyala/m3u8/master/sample-playlists/media-playlist-with-discontinuity.m3u8
 
   Encrypted with provided iv
-  https://www.radiantmediaplayer.com/media/rmp-segment/bbb-abr-aes/playlist.m3u8
+    https://www.radiantmediaplayer.com/media/rmp-segment/bbb-abr-aes/playlist.m3u8
 
   jwplayer with TXT manifest
-  aHR0cHM6Ly9mdWxsbWF0Y2hzcG9ydHMuY2Mvc3BhaW4tdnMtZnJhbmNlLWZ1bGwtbWF0Y2gtZXVyby0yMDI0Lz90YWI9aGlnaGxpZ2h0cw==
+    aHR0cHM6Ly9mdWxsbWF0Y2hzcG9ydHMuY2Mvc3BhaW4tdnMtZnJhbmNlLWZ1bGwtbWF0Y2gtZXVyby0yMDI0Lz90YWI9aGlnaGxpZ2h0cw==
 
   MPEG-DASH (*.Mpd)  with playlist and resolvedUri
-  https://dash.akamaized.net/dash264/TestCasesIOP33/adapatationSetSwitching/5/manifest.mpd
-  http://ftp.itec.aau.at/datasets/DASHDataset2014/BigBuckBunny/2sec/BigBuckBunny_2s_onDemand_2014_05_09.mpd
+    https://dash.akamaized.net/dash264/TestCasesIOP33/adapatationSetSwitching/5/manifest.mpd
+    http://ftp.itec.aau.at/datasets/DASHDataset2014/BigBuckBunny/2sec/BigBuckBunny_2s_onDemand_2014_05_09.mpd
 
   Encrypted with difference encrypted to decrypted byte length and no iv
-  aHR0cHM6Ly92NS52b2lyYW5pbWUuY29tL2FuaW1lL21vYmlsZS1zdWl0LWd1bmRhbS1zZWVkLXZmL21vYmlsZS1zdWl0LWd1bmRhbS1zZWVkLTIwLXZmLyAtPiBMRUNURVVSIE1PT04=
+    aHR0cHM6Ly92NS52b2lyYW5pbWUuY29tL2FuaW1lL21vYmlsZS1zdWl0LWd1bmRhbS1zZWVkLXZmL21vYmlsZS1zdWl0LWd1bmRhbS1zZWVkLTIwLXZmLyAtPiBMRUNURVVSIE1PT04=
 
   Only answers to "bytes 0-" for a few seconds. Returns more data than requested for ranged requests. Does not accept a custom range size. Returns less data than requested
-  aHR0cHM6Ly9zbi12aWRlby5jb20vcGFnZS5waHA/MjI5NQ==
+    aHR0cHM6Ly9zbi12aWRlby5jb20vcGFnZS5waHA/MjI5NQ==
 
   Extract link from videojs
-  aHR0cHM6Ly93YWF3LnRvL3dhdGNoX3ZpZGVvLnBocD92PWNYb3ZTRzFGZEd0UGNGZDNWbkpuTjB4MmF6TlFUM1JDZEV0UWFGVlpWbXB3YVRVd2FIY3JNazlCU0ZKMFlrbHdhakJpUVUxWVRXbGpkeXRzTHpSeFZ3JTNEJTNEI2lzcz1NVEEwTGpJNExqSXpOUzQxT0E9PQ==
+    aHR0cHM6Ly93YWF3LnRvL3dhdGNoX3ZpZGVvLnBocD92PWNYb3ZTRzFGZEd0UGNGZDNWbkpuTjB4MmF6TlFUM1JDZEV0UWFGVlpWbXB3YVRVd2FIY3JNazlCU0ZKMFlrbHdhakJpUVUxWVRXbGpkeXRzTHpSeFZ3JTNEJTNEI2lzcz1NVEEwTGpJNExqSXpOUzQxT0E9PQ==
 
   MPD with audio playlist
-  aHR0cHM6Ly90cHR2ZW5jb3JlLmNvLnVrL3Byb2R1Y3QvbWVldC1qb2huLWRvZS02MzMzNDU2MTEzMTEy
+    aHR0cHM6Ly90cHR2ZW5jb3JlLmNvLnVrL3Byb2R1Y3QvbWVldC1qb2huLWRvZS02MzMzNDU2MTEzMTEy
 
   Very big file that content-length returns a segment size not the actual size
-  aHR0cHM6Ly9teXBpa3Bhay5jb20vcy9WT0ptNVdST1dOci1pZmFEelZ5RmV2cEVvMQ==
+    aHR0cHM6Ly9teXBpa3Bhay5jb20vcy9WT0ptNVdST1dOci1pZmFEelZ5RmV2cEVvMQ==
+
+
+  Encrypted MPD with ContentProtection
+    aHR0cHM6Ly9zaGFoaWQubWJjLm5ldC9hci9wbGF5ZXIvZXBpc29kZXMvJUQ4JUE3JUQ5JTg0JUQ4JUFEJUQ5JTgxJUQ4JUIxJUQ4JUE5LSVEOCVBNyVEOSU4NCVEOSU4NSVEOSU4OCVEOCVCMyVEOSU4NS0xLSVEOCVBNyVEOSU4NCVEOCVBRCVEOSU4NCVEOSU4MiVEOCVBOS0xL2lkLTg5MzQ3OA==
+
 */

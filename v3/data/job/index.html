@@ -97,12 +97,17 @@
           <label for="online-resolve-name">Try to Resolve Filename from Server</label>
           <input type="checkbox" id="online-resolve-name">
           <span class="sep"></span>
-          <label for="quality-selector">Show Quality Selector</label>
-          <input type="radio" name="quality" checked id="quality-selector">
-          <label for="quality-highest">Select Highest Quality</label>
-          <input type="radio" name="quality" id="quality-highest">
-          <label for="quality-lowest">Select Lowest Quality</label>
-          <input type="radio" name="quality" id="quality-lowest">
+          <label for="default-format">Default Format</label>
+          <select id="default-format">
+            <option value="mkv">MKV</option>
+            <option value="ts">TS</option>
+          </select>
+          <label for="quality">Quality Selector</label>
+          <select id="quality">
+            <option value="selector">Show Quality Selector</option>
+            <option value="highest">Select Highest Quality</option>
+            <option value="lowest">Select Lowest Quality</option>
+          </select>
           <span class="sep"></span>
           <a target="_blank" href="https://webbrowsertools.com/test-download-with/">Test Video Downloading</a>
           <a target="_blank" href="https://webbrowsertools.com/repair-video/">Repair Video File</a>
@@ -155,5 +160,6 @@
   <script type="text/javascript" src="plugins/batch.js"></script>
   <script type="text/javascript" src="plugins/links.js"></script>
   <script type="text/javascript" src="plugins/mime.js"></script>
+  <script type="text/javascript" src="plugins/format.js"></script>
 </body>
 </html>

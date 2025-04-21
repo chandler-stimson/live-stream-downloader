@@ -129,13 +129,21 @@ helper.options = ({meta}) => {
 
   // this way, the file can get played while download is in progress
   if (meta.ext === 'm3u8' || meta.ext === 'mpd') {
-    options.types[0].accept = {
-      'video/MP2T': ['.ts']
-    };
+    const df = document.getElementById('default-format').value;
+    if (df === 'ts') {
+      options.types[0].accept = {
+        'video/MP2T': ['.ts']
+      };
+    }
+    else {
+      options.types[0].accept = {
+        'video/mkv': ['.mkv']
+      };
+    }
     options.suggestedName =
       (meta.gname || meta.name || 'Untitled') +
       (meta.index ? (' - ' + meta.index) : '') +
-      '.ts';
+      '.' + df;
   }
   else if (meta.ext === '') {
     options.types[0].accept = {

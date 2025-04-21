@@ -348,6 +348,9 @@ body[data-mode=empty] #tools {
   text-decoration: none;
   color: var(--bg-progress);
 }
+#options select {
+  padding: 3px;
+}
 #power-container {
   display: contents;
 }

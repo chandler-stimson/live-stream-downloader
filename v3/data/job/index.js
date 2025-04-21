@@ -178,12 +178,15 @@ ${timingObjects.map(([id, a]) => {
 
   // segment with initialization map
   segments = segments.map(segment => {
-    if (segment.map && segment.map.uri && segment.map.uri !== segment.uri) {
-      return [{
-        ...segment,
-        ...segment.map,
-        cache: true // cache this fetch
-      }, segment];
+    if (segment.map) {
+      const uri = segment.map.resolvedUri || segment.map.uri;
+      if (uri && uri !== segment.uri) {
+        return [{
+          ...segment,
+          ...segment.map,
+          cache: true // cache this fetch
+        }, segment];
+      }
     }
     return segment;
   }).flat();

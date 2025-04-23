@@ -320,24 +320,44 @@ document.getElementById('hrefs').onsubmit = async e => {
     div.dataset.active = true;
 
     const opts = helper.options(div);
-    const file = self.aFile || await window.showSaveFilePicker(opts).catch(e => {
-      console.error(e);
-      // the explorer rejects the suggested name
-      // opts.types[0].accept = {'dd/vv': ['.longextensionfile']};
-      if (e instanceof TypeError) {
-        return window.showSaveFilePicker({
-          types: [{
-            accept: {
-              'video/mkv': ['.mkv']
-            },
-            description: 'Video or Audio Files'
-          }]
-        });
-      }
-      throw e;
-    });
-    button.value = 'Processing...';
 
+    // the explorer rejects the suggested name
+    // opts.types[0].accept = {'dd/vv': ['.longextensionfile']};
+    let file;
+    try {
+      // use the original name
+      file = await window.showSaveFilePicker(opts);
+    }
+    catch (e) {
+      console.error(e);
+      if (e instanceof TypeError) {
+        try {
+          // try to remove illegal or problematic characters for Windows, macOS, Linux
+          // https://github.com/chandler-stimson/live-stream-downloader/issues/46
+          opts.suggestedName = opts.suggestedName.replace(
+            /[\\/:*?"<>|\0]|^[\s.]+|[\s.]+$|[~`!@#$%^&+={}[\];,]/g,
+            '_'
+          );
+          file = await window.showSaveFilePicker(opts);
+        }
+        catch (e) {
+          console.error(e);
+          if (e instanceof TypeError) {
+            delete opts.suggestedName;
+            file = await window.showSaveFilePicker(opts);
+          }
+          else {
+            throw e;
+          }
+        }
+      }
+      else {
+        throw e;
+      }
+    }
+    self.aFile = file;
+
+    button.value = 'Processing...';
 
     // run pre
     for (const callback of events.before) {
@@ -385,7 +405,8 @@ document.getElementById('hrefs').onsubmit = async e => {
   for (const callback of events.after) {
     /* success, done */
     callback(
-      document.body.dataset.mode === 'done', 'aFile' in self ? self.aFile.stat.index === self.aFile.stat.total : true
+      document.body.dataset.mode === 'done',
+      ('aFile' in self && 'stat' in self.aFile) ? self.aFile.stat.index === self.aFile.stat.total : true
     );
   }
 

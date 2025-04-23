@@ -323,39 +323,41 @@ document.getElementById('hrefs').onsubmit = async e => {
 
     // the explorer rejects the suggested name
     // opts.types[0].accept = {'dd/vv': ['.longextensionfile']};
-    let file;
-    try {
-      // use the original name
-      file = await window.showSaveFilePicker(opts);
-    }
-    catch (e) {
-      console.error(e);
-      if (e instanceof TypeError) {
-        try {
-          // try to remove illegal or problematic characters for Windows, macOS, Linux
-          // https://github.com/chandler-stimson/live-stream-downloader/issues/46
-          opts.suggestedName = opts.suggestedName.replace(
-            /[\\/:*?"<>|\0]|^[\s.]+|[\s.]+$|[~`!@#$%^&+={}[\];,]/g,
-            '_'
-          );
-          file = await window.showSaveFilePicker(opts);
-        }
-        catch (e) {
-          console.error(e);
-          if (e instanceof TypeError) {
-            delete opts.suggestedName;
+    let file = self.aFile;
+    // ask user for picking
+    if (!file) {
+      try {
+        // use the original name
+        file = await window.showSaveFilePicker(opts);
+      }
+      catch (e) {
+        console.error(e);
+        if (e instanceof TypeError) {
+          try {
+            // try to remove illegal or problematic characters for Windows, macOS, Linux
+            // https://github.com/chandler-stimson/live-stream-downloader/issues/46
+            opts.suggestedName = opts.suggestedName.replace(
+              /[\\/:*?"<>|\0]|^[\s.]+|[\s.]+$|[~`!@#$%^&+={}[\];,]/g,
+              '_'
+            );
             file = await window.showSaveFilePicker(opts);
           }
-          else {
-            throw e;
+          catch (e) {
+            console.error(e);
+            if (e instanceof TypeError) {
+              delete opts.suggestedName;
+              file = await window.showSaveFilePicker(opts);
+            }
+            else {
+              throw e;
+            }
           }
         }
-      }
-      else {
-        throw e;
+        else {
+          throw e;
+        }
       }
     }
-    self.aFile = file;
 
     button.value = 'Processing...';
 
@@ -406,7 +408,7 @@ document.getElementById('hrefs').onsubmit = async e => {
     /* success, done */
     callback(
       document.body.dataset.mode === 'done',
-      ('aFile' in self && 'stat' in self.aFile) ? self.aFile.stat.index === self.aFile.stat.total : true
+      'aFile' in self ? self.aFile.stat.index === self.aFile.stat.total : true
     );
   }
 

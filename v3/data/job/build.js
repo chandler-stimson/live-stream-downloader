@@ -67,7 +67,7 @@ const addEntries = async entries => {
         });
 
         for (const {match, value} of r[0].result) {
-          prefs.filename = prefs.filename.replace('[q:' + match + ']', value);
+          prefs.filename = prefs.filename.replace('[q:' + match + ']', '[[' + value + ']]');
         }
       }
       catch (e) {
@@ -87,11 +87,94 @@ const addEntries = async entries => {
     const ex = clone.querySelector('[data-id=ext]');
     const meta = {};
 
+
+    /**
+     * The core function to replace [key] placeholders and apply optional transformation chains.
+     * * It supports three primary formats:
+     * 1. Simple lookup: [key] -> Replaces with the value from the map.
+     * 2. Direct string: [[literal string]] -> Uses the string inside as the value.
+     * 3. Chained transformations: [source]<search, replace><search, replace>...
+     * - Each <search, replace> block is treated as a regex replacement applied sequentially to the value.
+     * * @param {string} str The input string containing placeholders.
+     * @param {string} str
+     * @param {Object} map The lookup object (m) for replacements.
+     * @return {string} The processed string with all placeholders resolved.
+     */
+    const replacePlaceholders = (str, map) => {
+      // OUTER REGEX:
+      // 1. (\[([a-zA-Z0-9_.]+)\]|\[\[(.*?)\]\]) -> Captures EITHER [key] (Group 2) OR [[string]] (Group 3)
+      // 2. ((?:\s*<[^>]+>)*)                      -> Captures the transformation chain (Group 4)
+      const outerRegex = /(\[([a-zA-Z0-9_.]+)\]|\[\[(.*?)\]\])((?:\s*<[^>]+>)*)/g;
+
+      // INNER REGEX:
+      // Used to parse individual <search, replace> blocks from the captured chain string
+      const chainRegex = /<([^,>]+?)\s*,\s*([^>]+)>/g;
+
+      // Replacer function arguments:
+      // fullMatch: [key]<chain> or [[string]]<chain>
+      // placeholderBlock: [key] or [[string]]
+      // key: e.g., "user.name" (if map lookup)
+      // literalString: e.g., "string here" (if direct string)
+      // transformationChain: e.g., "<\s, '_'><n, 'X'>"
+      return str.replace(outerRegex, (fullMatch, placeholderBlock, key, literalString, transformationChain) => {
+        let finalValue;
+
+        // 1. Determine the source of the value
+        if (key) {
+          // Source is a map key (e.g., [user.name])
+          if (!(key in map)) {
+            return fullMatch; // Key not found, preserve original placeholder
+          }
+          // Use String() for safety
+          finalValue = String(map[key]);
+        }
+        else if (literalString) {
+          // Source is a literal string (e.g., [[Static Content]])
+          finalValue = literalString;
+        }
+        else {
+          // Should not happen, preserve original match
+          return fullMatch;
+        }
+
+        // 2. If there are transformations, process them sequentially
+        if (transformationChain) {
+          // Iterate over every <search, replace> block found in the chain
+          for (const match of transformationChain.matchAll(chainRegex)) {
+            const searchPattern = match[1];
+            const replaceString = match[2];
+
+            try {
+              const trimmedSearch = searchPattern.trim();
+              let trimmedReplace = replaceString.trim();
+
+              // Strip surrounding quotes from the replacement string if present
+              if (
+                (trimmedReplace.startsWith(`'`) && trimmedReplace.endsWith(`'`)) ||
+                (trimmedReplace.startsWith('"') && trimmedReplace.endsWith('"'))
+              ) {
+                trimmedReplace = trimmedReplace.slice(1, -1);
+              }
+
+              const searchRegex = new RegExp(trimmedSearch, 'g');
+              finalValue = finalValue.replace(searchRegex, trimmedReplace);
+            }
+            catch (e) {
+              console.error(`Error processing transformation for source [${key || literalString}]`, e);
+            }
+          }
+        }
+
+        return finalValue;
+      });
+    };
+
     const name = () => {
-      meta.gname = en.textContent = en.title = prefs.filename
-        .replace('[meta.name]', meta.name)
-        .replace('[title]', args.get('title'))
-        .replace('[hostname]', hostname);
+      meta.gname = en.textContent = en.title = replacePlaceholders(prefs.filename, {
+        'meta.name': meta.name,
+        'title': args.get('title'),
+        'hostname': hostname
+      });
 
       if (prefs.filename.includes('[meta.name]') === false) {
         exn.textContent = exn.title = '(' + meta.name + ')';

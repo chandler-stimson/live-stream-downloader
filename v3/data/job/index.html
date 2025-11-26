@@ -72,7 +72,10 @@
     [meta.name] (default)
     [title]
     [hostname]
-    [q:query|method|default-value]">
+    [q:query|method|default-value]
+
+Use the [key] format for simple lookup, or chain transformations with [key]<search, replace><search, replace>...
+The search pattern is a RegExp. For instance, <\s, _> replaces all spaces in the value with underscores.">
             <label for="filename">Filename <a data-href="faq10" target="_blank">Format</a></label>
             <input type="text" id="filename">
           </div>

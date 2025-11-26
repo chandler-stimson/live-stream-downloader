@@ -79,7 +79,7 @@ extract.performance = async tabId => {
   }
 };
 
-/* extract media from jwplayer and videojs objects */
+/* extract media from jwplayer, videojs, and soundmanager objects */
 extract.player = async tabId => {
   try {
     const a = await chrome.scripting.executeScript({
@@ -97,7 +97,7 @@ extract.player = async tabId => {
                 initiator: location.href,
                 url: new URL(o.file, location.href).href,
                 timeStamp: performance.timing.domComplete,
-                source: 'jwplayer'
+                source: 'jwPlayer/1'
               });
             }
             if (o.sources) {
@@ -107,7 +107,7 @@ extract.player = async tabId => {
                     initiator: location.href,
                     url: new URL(p.file, location.href).href,
                     timeStamp: performance.timing.domComplete,
-                    source: 'jwplayer'
+                    source: 'jwPlayer/2'
                   });
                 }
               }
@@ -125,7 +125,7 @@ extract.player = async tabId => {
                 initiator: location.href,
                 url: o.src,
                 timeStamp: performance.timing.domComplete,
-                source: 'videojs'
+                source: 'VideoJS'
               };
               if (o.type) {
                 m.responseHeaders = [{
@@ -151,6 +151,20 @@ extract.player = async tabId => {
             apd(o);
           }
         }
+
+        // sound manager
+        try {
+          for (const {url} of Object.values(self.soundManager.sounds)) {
+            console.log(new URL(url, location.href).href);
+            list.push({
+              initiator: location.href,
+              url: new URL(url, location.href).href,
+              timeStamp: performance.timing.domComplete,
+              source: 'SoundManager'
+            });
+          }
+        }
+        catch (e) {}
 
         return list;
       },

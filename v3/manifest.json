@@ -9,26 +9,14 @@
     "contextMenus",
     "webRequest",
     "declarativeNetRequestWithHostAccess",
-    "declarativeContent",
     "scripting",
     "alarms"
   ],
-  "optional_permissions": [
-    "power"
-  ],
-  "host_permissions": [
-    "*://*/*"
-  ],
+  "optional_permissions": [],
+  "host_permissions": ["*://*/*"],
   "homepage_url": "https://webextension.org/listing/hls-downloader.html",
   "background": {
-    "service_worker": "worker.js",
-    "scripts": [
-      "network/core.js",
-      "network/icon.js",
-      "context.js",
-      "plugins/blob-detector/core.js",
-      "worker.js"
-    ]
+    "service_worker": "worker.js"
   },
   "icons": {
     "16": "data/icons/16.png",

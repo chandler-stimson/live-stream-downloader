@@ -81,8 +81,6 @@ Promise.all([
       }
     }
     catch (e) {
-      console.log(s);
-
       entries.set(s, {
         url: s
       });
@@ -318,54 +316,108 @@ Use the box below to update the URL`, {
   clearInterval(timer);
 };
 
-document.getElementById('hrefs').onsubmit = async e => {
-  e.preventDefault();
-  const div = e.submitter.closest('label');
-  const button = div.querySelector('input[type="submit"]');
+/* queued entries wait on an unlimited promise until the user presses Start */
+const queue = new Map(); // label -> {controller, resolve, promise, file, button}
 
+/* queued entries start via the Download button and cancel via the Queue button */
+const setQueued = (div, queued) => {
+  const download = div.querySelector('[data-id=download]');
+  const q = div.querySelector('[data-id=queue]');
+  if (queued) {
+    // keep the current labels so that they can be restored (they may be localized)
+    download.dataset.label = download.value;
+    q.dataset.label = q.value;
+    download.value = 'Start';
+    download.dataset.action = 'start';
+    q.value = 'Cancel Queue';
+    q.dataset.action = 'cancel';
+  }
+  else {
+    download.value = download.dataset.label || download.value;
+    q.value = q.dataset.label || q.value;
+    delete download.dataset.label;
+    delete q.dataset.label;
+    download.dataset.action = 'download';
+    q.dataset.action = 'queue';
+  }
+};
+
+{
+  // double ESC (within 1 second) cancels all queue items at once;
+  // programmatic (e.isTrusted === false) invocations skip the confirmation
+  let stamp = 0;
+  addEventListener('keydown', e => {
+    if (e.key !== 'Escape') {
+      stamp = 0;
+      return;
+    }
+    const now = Date.now();
+    if (stamp && now - stamp < 1000) {
+      stamp = 0;
+      if (queue.size && (e.isTrusted === false || confirm('Cancel all queued downloads?'))) {
+        for (const [div, record] of queue) {
+          record.controller.abort(Error('QUEUE_ABORT')); // rejects the unlimited promise
+          setQueued(div, false);
+        }
+        queue.clear();
+        self.notify('Queue canceled');
+      }
+    }
+    else {
+      stamp = now;
+    }
+  });
+}
+
+/* ask user for picking a location; adjust the suggested name if the explorer rejects it */
+const pickSaveFile = async opts => {
+  // the explorer rejects the suggested name
+  // opts.types[0].accept = {'dd/vv': ['.longextensionfile']};
+  try {
+    // use the original name
+    return await window.showSaveFilePicker(opts);
+  }
+  catch (e) {
+    console.error(e);
+    if (e instanceof TypeError) {
+      try {
+        // try to remove illegal or problematic characters for Windows, macOS, Linux
+        // https://github.com/chandler-stimson/live-stream-downloader/issues/46
+        opts.suggestedName = opts.suggestedName.replace(
+          /[\\/:*?"<>|\0]|^[\s.]+|[\s.]+$|[~`!@#$%^&+={}[\];,]/g,
+          '_'
+        );
+        return await window.showSaveFilePicker(opts);
+      }
+      catch (e) {
+        console.error(e);
+        if (e instanceof TypeError) {
+          delete opts.suggestedName;
+          return await window.showSaveFilePicker(opts);
+        }
+        else {
+          throw e;
+        }
+      }
+    }
+    else {
+      throw e;
+    }
+  }
+};
+
+const run = async (div, picked, button) => {
+  const label = button.value; // preserve for restoring (it may be localized)
   document.body.dataset.mode = 'prepare';
 
   try {
     div.dataset.active = true;
 
     const opts = helper.options(div);
-
-    // the explorer rejects the suggested name
-    // opts.types[0].accept = {'dd/vv': ['.longextensionfile']};
-    let file = self.aFile;
+    let file = picked || self.aFile;
     // ask user for picking
     if (!file) {
-      try {
-        // use the original name
-        file = await window.showSaveFilePicker(opts);
-      }
-      catch (e) {
-        console.error(e);
-        if (e instanceof TypeError) {
-          try {
-            // try to remove illegal or problematic characters for Windows, macOS, Linux
-            // https://github.com/chandler-stimson/live-stream-downloader/issues/46
-            opts.suggestedName = opts.suggestedName.replace(
-              /[\\/:*?"<>|\0]|^[\s.]+|[\s.]+$|[~`!@#$%^&+={}[\];,]/g,
-              '_'
-            );
-            file = await window.showSaveFilePicker(opts);
-          }
-          catch (e) {
-            console.error(e);
-            if (e instanceof TypeError) {
-              delete opts.suggestedName;
-              file = await window.showSaveFilePicker(opts);
-            }
-            else {
-              throw e;
-            }
-          }
-        }
-        else {
-          throw e;
-        }
-      }
+      file = await pickSaveFile(opts);
     }
 
     button.value = 'Processing...';
@@ -421,6 +473,72 @@ document.getElementById('hrefs').onsubmit = async e => {
     );
   }
 
-  button.value = 'Download';
+  button.value = label;
   div.dataset.active = false;
+};
+
+document.getElementById('hrefs').onsubmit = async e => {
+  e.preventDefault();
+  const button = e.submitter;
+  const div = button.closest('label');
+
+  // dispatch on the stable action (button.value may be localized)
+  const action = button.dataset.action;
+
+  // queue: pick the location now; the download continues once Start is pressed
+  if (action === 'queue') {
+    document.body.dataset.mode = 'prepare';
+    try {
+      const file = await pickSaveFile(helper.options(div));
+
+      const record = {
+        controller: new AbortController(),
+        file,
+        button: div.querySelector('[data-id=download]')
+      };
+      record.promise = new Promise((resolve, reject) => {
+        record.resolve = resolve;
+        // abort listener rejects the unlimited promise
+        record.controller.signal.addEventListener('abort', () => {
+          reject(record.controller.signal.reason || Error('QUEUE_ABORT'));
+        });
+      });
+      record.promise.then(() => {
+        if (queue.delete(div)) {
+          setQueued(div, false);
+          run(div, record.file, record.button);
+        }
+      }, () => {});
+
+      queue.set(div, record);
+      setQueued(div, true);
+      self.notify('Press Start to begin. Press Esc twice to cancel all queued jobs.', 5000);
+      document.body.dataset.mode = 'ready';
+    }
+    catch (e) {
+      div.classList.remove('done');
+      div.classList.add('error');
+      error(e);
+    }
+    return;
+  }
+
+  // Start resolves the queued promise; the continuation starts the download
+  if (action === 'start') {
+    queue.get(div)?.resolve();
+    return;
+  }
+
+  // remove a single job from the queue
+  if (action === 'cancel') {
+    const record = queue.get(div);
+    if (record) {
+      record.controller.abort(Error('QUEUE_ABORT')); // rejects the unlimited promise
+      queue.delete(div);
+      setQueued(div, false);
+    }
+    return;
+  }
+
+  run(div, null, button);
 };

@@ -28,7 +28,6 @@ let wakeLock = null;
 const request = async () => {
   try {
     wakeLock = await navigator.wakeLock.request('screen');
-    console.log(wakeLock);
   }
   catch (e) {
     console.warn('Keep Awake is not available', e);

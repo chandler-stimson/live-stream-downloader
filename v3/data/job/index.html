@@ -23,9 +23,10 @@
       <span data-id="ext">Extension</span>
       <span data-id="size">Size</span>
       <span data-id="href">Link</span>
-      <input type="button" data-id="rename" value="Rename" disabled>
-      <input type="button" data-id="copy" value="Copy">
-      <input type="submit" value="Download">
+      <input type="button" data-id="rename" value="Rename" disabled title="Rename the downloaded file to the name resolved from the server. This will overwrite an existing file with the same name">
+      <input type="button" data-id="copy" value="Copy" title="Copy the media link to the clipboard">
+      <input type="submit" data-id="download" data-action="download" value="Download" title="Download this job now: pick a location and start immediately">
+      <input type="submit" data-id="queue" data-action="queue" value="Queue" title="Queue this job: pick a location now, then Start or Cancel Queue later. Double ESC cancels all queued items">
     </label>
   </template>
   <div id="intro">

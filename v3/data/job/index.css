@@ -204,7 +204,7 @@ body:not([data-mode=empty]) #intro {
 }
 #hrefs {
   display: grid;
-  grid-template-columns: min-content min-content min-content repeat(2, min-content) 1fr repeat(3, min-content);
+  grid-template-columns: min-content min-content min-content repeat(2, min-content) 1fr repeat(4, min-content);
   grid-gap: 2px 10px;
   align-items: center;
   overflow: hidden;
@@ -238,6 +238,7 @@ body:not([data-mode=empty]) #intro {
   color: var(--fg-green);
   justify-self: center;
 }
+#hrefs input[type=submit]:not(:last-child),
 #hrefs input[type=button]:not(:last-child) {
   margin-right: -8px;
 }

@@ -241,7 +241,9 @@ const addEntries = async entries => {
 
     if (entry.blocked?.value) {
       clone.querySelector('input[data-id="copy"]').disabled = true;
-      clone.querySelector('input[type=submit]').disabled = true;
+      for (const input of clone.querySelectorAll('input[type=submit]')) {
+        input.disabled = true;
+      }
     }
 
     document.getElementById('hrefs').appendChild(div);

@@ -378,7 +378,9 @@ const pickSaveFile = async opts => {
     return await window.showSaveFilePicker(opts);
   }
   catch (e) {
-    console.error(e);
+    if (e?.name !== 'AbortError') {
+      console.error(e);
+    }
     if (e instanceof TypeError) {
       try {
         // try to remove illegal or problematic characters for Windows, macOS, Linux
@@ -390,7 +392,9 @@ const pickSaveFile = async opts => {
         return await window.showSaveFilePicker(opts);
       }
       catch (e) {
-        console.error(e);
+        if (e?.name !== 'AbortError') {
+          console.error(e);
+        }
         if (e instanceof TypeError) {
           delete opts.suggestedName;
           return await window.showSaveFilePicker(opts);
@@ -459,9 +463,16 @@ const run = async (div, picked, button) => {
     div.classList.add('done');
   }
   catch (e) {
-    div.classList.remove('done');
-    div.classList.add('error');
-    error(e);
+    // the user dismissed the file picker dialog; this is not an error
+    if (e?.name === 'AbortError') {
+      document.body.dataset.mode = 'ready';
+      self.notify('The file dialog was dismissed; press the download button to try again.', 5000);
+    }
+    else {
+      div.classList.remove('done');
+      div.classList.add('error');
+      error(e);
+    }
   }
 
   // run post
@@ -516,9 +527,16 @@ document.getElementById('hrefs').onsubmit = async e => {
       document.body.dataset.mode = 'ready';
     }
     catch (e) {
-      div.classList.remove('done');
-      div.classList.add('error');
-      error(e);
+      // the user dismissed the file picker dialog; this is not an error
+      if (e?.name === 'AbortError') {
+        document.body.dataset.mode = 'ready';
+        self.notify('The file dialog was dismissed; press the queue button to try again.', 5000);
+      }
+      else {
+        div.classList.remove('done');
+        div.classList.add('error');
+        error(e);
+      }
     }
     return;
   }

@@ -122,7 +122,7 @@ class MGet {
             let retryCount = 10;
             while (retryCount > 0) {
               try {
-                let sm = { ...segment };
+                let sm = { ...segment, range: segment.range && { ...segment.range } };
                 await this.prepare(sm, p);
                 await this.pipe(sm, params, p, () => {
                   // start a new segment if we have a free thread and there are leftover segments
@@ -134,14 +134,13 @@ class MGet {
                 break;
               }
               catch (e) {
-                if (e?.message === 'PIPE_SIZE_MISMATCH') {
-                  console.error(e.message, 'at position:', position, '. Download it again!', retryCount, 'retries left');
+                if (e?.message === 'PIPE_SIZE_MISMATCH' && retryCount > 1) {
+                  console.error(e.message, 'at position:', position, 'Download it again!', retryCount - 1, 'retries left');
                   retryCount -= 1;
+                  continue;
                 }
-                if (retryCount === 0) {
-                  reject(e);
-                  break;
-                }
+                reject(e);
+                break;
               }
             }
             start();

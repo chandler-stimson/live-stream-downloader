@@ -40,14 +40,24 @@ const network = {
   ];
   const SUB = ['vtt', 'webvtt', 'srt'];
 
-  network.types = (query = {core: true}) => {
-    return new Promise(resolve => chrome.storage.local.get({
-      'network.types': [
-        ...(query.core ? CORE : []),
-        ...(query.extra ? EXTRA : []),
-        ...(query.sub ? SUB : [])
-      ]
-    }, prefs => resolve(prefs['network.types'])));
+  network.types = async (query = {core: true}) => {
+    const prefs = await chrome.storage.local.get({
+      'network.types.core': CORE,
+      'network.types.extra': EXTRA,
+      'network.types.sub': SUB
+    });
+    const results = [];
+    if (query.core) {
+      results.push(...prefs['network.types.core']);
+    }
+    if (query.extra) {
+      results.push(...prefs['network.types.extra']);
+    }
+    if (query.sub) {
+      results.push(...prefs['network.types.sub']);
+    }
+
+    return results;
   };
 }
 

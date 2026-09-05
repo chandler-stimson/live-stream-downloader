@@ -24,6 +24,7 @@
       "network/core.js",
       "network/icon.js",
       "context.js",
+      "plugins/blob-detector/tld.js",
       "plugins/blob-detector/core.js",
       "data/job/extract.js",
       "worker.js"

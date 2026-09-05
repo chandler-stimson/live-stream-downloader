@@ -23,6 +23,7 @@ if (typeof importScripts !== 'undefined') {
   self.importScripts('network/core.js');
   self.importScripts('network/icon.js');
   self.importScripts('context.js');
+  self.importScripts('/plugins/blob-detector/tld.js');
   self.importScripts('/plugins/blob-detector/core.js');
   self.importScripts('/data/job/extract.js');
 }

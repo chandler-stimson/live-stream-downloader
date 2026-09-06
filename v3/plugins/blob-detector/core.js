@@ -17,25 +17,42 @@
     Homepage: https://webextension.org/listing/hls-downloader.html
 */
 
-// https://ww9.0123movie.net/movie/ugly-betty-season-1-6373.html
+/* global observe, tld */
 
-/* global tld */
+const bbdetector = {};
 
-const activate = async () => {
-  if (activate.busy) {
+bbdetector.mime = {
+  observe(d) {
+    for (const {name, value} of d.responseHeaders) {
+      if ((name === 'content-type' || name === 'Content-Type') && value && (
+        value.startsWith('video/') || value.startsWith('audio/')
+      )) {
+        console.log(d);
+
+        return observe(d);
+      }
+    }
+  }
+};
+
+bbdetector.activate = async () => {
+  if (bbdetector.busy) {
+    bbdetector.pending = true;
     return;
   }
-  activate.busy = true;
+  bbdetector.busy = true;
   const prefs = await chrome.storage.local.get({
     'mime-watch': false,
+    'detect-media': true,
     'mime-watch-scope-mode': 'all',
     'mime-watch-allowlist': []
   });
   await chrome.scripting.unregisterContentScripts({
     ids: ['bb_main', 'bb_isolated']
   }).catch(() => {});
+  chrome.webRequest.onHeadersReceived.removeListener(bbdetector.mime.observe);
 
-  if (prefs['mime-watch']) {
+  if (prefs['mime-watch'] && prefs['detect-media']) {
     let matches = [];
     if (prefs['mime-watch-scope-mode'] === 'all') {
       matches = ['*://*/*'];
@@ -43,8 +60,8 @@ const activate = async () => {
     else if (prefs['mime-watch-allowlist'].length) {
       matches = prefs['mime-watch-allowlist'].map(host => '*://*.' + host + '/*');
     }
-console.log(matches);
     if (matches.length) {
+      console.info('blob detection', 'network observer is installed');
       const props = {
         'matches': matches,
         'allFrames': true,
@@ -67,27 +84,50 @@ console.log(matches);
         }]);
       }
       catch (e) {}
+
+      chrome.webRequest.onHeadersReceived.addListener(bbdetector.mime.observe, {
+        urls: matches,
+        types: ['xmlhttprequest']
+      }, ['responseHeaders']);
     }
     else {
-      console.info('Blob detection is disabled', 'matching list is empty');
+      console.info('blob detection', 'network observer is removed: empty list');
     }
   }
-  activate.busy = false;
+  else {
+    console.info('blob detection', 'network observer is removed');
+  }
+  bbdetector.busy = false;
+  if (bbdetector.pending) {
+    bbdetector.pending = false;
+    bbdetector.activate();
+  }
 };
 
-const menuPrefs = () => chrome.storage.local.get({
+bbdetector.menu = {};
+
+bbdetector.menu.prefs = () => chrome.storage.local.get({
   'mime-watch': false,
+  'detect-media': true,
   'mime-watch-scope-mode': 'all'
 });
 
-const createMenus = () => menuPrefs().then(prefs => {
-  const enabled = prefs['mime-watch'];
+bbdetector.menu.create = async () => {
+  if (bbdetector.menu.create.done) {
+    return;
+  }
+  bbdetector.menu.create.done = true;
+  const prefs = await bbdetector.menu.prefs();
+  const enabled = prefs['mime-watch'] && prefs['detect-media'];
   const create = props => chrome.contextMenus.create(props, () => void chrome.runtime.lastError);
+
   create({
     title: 'Improved Media Detection',
     id: 'mime-watch-root',
     contexts: ['action'],
-    documentUrlPatterns: ['*://*/*']
+    documentUrlPatterns: ['*://*/*'],
+    parentId: 'detect-media-root',
+    enabled: prefs['detect-media']
   });
   create({
     title: 'Enabled',
@@ -146,13 +186,17 @@ const createMenus = () => menuPrefs().then(prefs => {
     documentUrlPatterns: ['*://*/*'],
     parentId: 'mime-watch-allowlist-root'
   });
-});
+};
 
-const syncMenus = () => menuPrefs().then(prefs => {
-  const enabled = prefs['mime-watch'];
+bbdetector.menu.sync = async () => {
+  const prefs = await bbdetector.menu.prefs();
+  const enabled = prefs['mime-watch'] && prefs['detect-media'];
   const update = (id, props) => chrome.contextMenus.update(id, props).catch(() => {});
   update('mime-watch-toggle', {
-    checked: enabled
+    checked: prefs['mime-watch']
+  });
+  update('mime-watch-root', {
+    enabled: prefs['detect-media']
   });
   update('mime-watch-scope-root', {
     enabled
@@ -166,21 +210,9 @@ const syncMenus = () => menuPrefs().then(prefs => {
   update('mime-watch-allowlist-root', {
     enabled
   });
-}).catch(() => {});
+};
 
-{
-  const once = () => {
-    if (once.done) {
-      return;
-    }
-    once.done = true;
-    createMenus();
-  };
-  chrome.runtime.onStartup.addListener(once);
-  chrome.runtime.onInstalled.addListener(once);
-}
-
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+bbdetector.menu.onClick = (info, tab) => {
   if (info.menuItemId === 'mime-watch-toggle') {
     chrome.storage.local.set({
       'mime-watch': info.checked
@@ -230,14 +262,26 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       self.notify(tab.id, '!', 'This page does not have valid hostname');
     }
   }
-});
+};
 
-chrome.storage.onChanged.addListener(ps => {
-  if (ps['mime-watch'] || ps['mime-watch-scope-mode'] || ps['mime-watch-allowlist']) {
-    activate();
-    syncMenus();
+bbdetector.onChange = ps => {
+  if (ps['mime-watch'] || ps['mime-watch-scope-mode'] || ps['mime-watch-allowlist'] || ps['detect-media']) {
+    bbdetector.activate();
+    bbdetector.menu.sync();
   }
-});
+};
 
-chrome.runtime.onStartup.addListener(activate);
-chrome.runtime.onInstalled.addListener(activate);
+chrome.contextMenus.onClicked.addListener(bbdetector.menu.onClick);
+chrome.storage.onChanged.addListener(bbdetector.onChange);
+{
+  const once = () => {
+    if (once.done) {
+      return;
+    }
+    once.done = true;
+    bbdetector.menu.create();
+    bbdetector.activate();
+  };
+  chrome.runtime.onStartup.addListener(once);
+  chrome.runtime.onInstalled.addListener(once);
+}

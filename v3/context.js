@@ -49,6 +49,24 @@
       contexts: ['action'],
       documentUrlPatterns: ['*://*/*']
     });
+    // the parent of the plugins menus (e.g. blob-detector); must be created synchronously
+    chrome.contextMenus.create({
+      title: 'Detect Media',
+      id: 'detect-media-root',
+      contexts: ['action'],
+      documentUrlPatterns: ['*://*/*']
+    });
+    chrome.storage.local.get({
+      'detect-media': true
+    }, prefs => chrome.contextMenus.create({
+      title: 'Enable',
+      id: 'detect-media-enable',
+      type: 'checkbox',
+      checked: prefs['detect-media'],
+      contexts: ['action'],
+      documentUrlPatterns: ['*://*/*'],
+      parentId: 'detect-media-root'
+    }, () => void chrome.runtime.lastError));
   };
   chrome.runtime.onStartup.addListener(once);
   chrome.runtime.onInstalled.addListener(once);
@@ -77,6 +95,11 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     chrome.action.setBadgeText({
       tabId: tab.id,
       text: ''
+    });
+  }
+  else if (info.menuItemId === 'detect-media-enable') {
+    chrome.storage.local.set({
+      'detect-media': info.checked
     });
   }
   else if (info.menuItemId === 'download-link') {
@@ -144,5 +167,13 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         next();
       }
     });
+  }
+});
+
+chrome.storage.onChanged.addListener(ps => {
+  if (ps['detect-media']) {
+    chrome.contextMenus.update('detect-media-enable', {
+      checked: ps['detect-media'].newValue
+    }).catch(() => {});
   }
 });

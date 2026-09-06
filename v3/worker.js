@@ -170,15 +170,6 @@ const observe = d => {
     }]
   }).then(c => badge(c[0].result, d.tabId)).catch(() => {});
 };
-observe.mime = d => {
-  for (const {name, value} of d.responseHeaders) {
-    if ((name === 'content-type' || name === 'Content-Type') && value && (
-      value.startsWith('video/') || value.startsWith('audio/')
-    )) {
-      return observe(d);
-    }
-  }
-};
 
 /* clear old list on remove */
 chrome.tabs.onRemoved.addListener(tabId => {
@@ -195,56 +186,102 @@ chrome.tabs.onRemoved.addListener(tabId => {
 //   }
 // });
 
-// media
-chrome.webRequest.onHeadersReceived.addListener(observe, {
-  urls: ['*://*/*'],
-  types: ['media']
-}, ['responseHeaders']);
+let detectMedia = true;
 
-// media types
-network.types({
-  core: true
-}).then(types => {
-  const cloned = navigator.userAgent.includes('Firefox') ? d => observe(d) : observe;
-
-  chrome.webRequest.onHeadersReceived.addListener(cloned, {
-    urls: types.map(s => '*://*/*.' + s + '*'),
-    types: ['xmlhttprequest']
-  }, ['responseHeaders']);
-});
-
-// https://iandevlin.com/html5/webvtt-example.html
-// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/track
-// https://demos.jwplayer.com/closed-captions/
-network.types({
-  core: false,
-  sub: true
-}).then(types => {
-  const cloned = navigator.userAgent.includes('Firefox') ? d => observe(d) : observe;
-
-  chrome.webRequest.onHeadersReceived.addListener(cloned, {
-    urls: types.map(s => '*://*/*.' + s + '*'),
-    types: ['xmlhttprequest', 'other']
-  }, ['responseHeaders']);
-});
-
-// watch for video and audio mime-types
 {
-  const run = () => chrome.storage.local.get({
-    'mime-watch': false
-  }, prefs => {
-    if (prefs['mime-watch']) {
-      chrome.webRequest.onHeadersReceived.addListener(observe.mime, {
-        urls: ['*://*/*'],
-        types: ['xmlhttprequest']
-      }, ['responseHeaders']);
+  const registry = [];
+  // Firefox requires a distinct callback per registration
+  const wrapper = () => navigator.userAgent.includes('Firefox') ? d => observe(d) : observe;
+  const install = () => {
+    for (const o of registry) {
+      if (o.added === false) {
+        chrome.webRequest.onHeadersReceived.addListener(o.fn, o.filter, ['responseHeaders']);
+        o.added = true;
+        console.info(o.name, 'network observer is installed');
+      }
     }
-    else {
-      chrome.webRequest.onHeadersReceived.removeListener(observe.mime);
+  };
+  const uninstall = () => {
+    for (const o of registry) {
+      if (o.added) {
+        chrome.webRequest.onHeadersReceived.removeListener(o.fn);
+        o.added = false;
+        console.info(o.name, 'network observer is removed');
+      }
+    }
+  };
+  const push = (filter, name) => registry.push({
+    fn: wrapper(),
+    filter,
+    added: false,
+    name
+  });
+
+  // builds the registry on first call only; later calls just (re-)install
+  const enable = () => {
+    if (enable.done) {
+      install();
+      return;
+    }
+    enable.done = true;
+
+    // media
+    push({
+      urls: ['*://*/*'],
+      types: ['media']
+    }, 'media type');
+    install();
+
+    // media types
+    network.types({
+      core: true
+    }).then(types => {
+      push({
+        urls: types.map(s => '*://*/*.' + s + '*'),
+        types: ['xmlhttprequest']
+      }, 'xml on core types');
+      if (detectMedia) {
+        install();
+      }
+    });
+
+    // https://iandevlin.com/html5/webvtt-example.html
+    // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/track
+    // https://demos.jwplayer.com/closed-captions/
+    network.types({
+      core: false,
+      sub: true
+    }).then(types => {
+      push({
+        urls: types.map(s => '*://*/*.' + s + '*'),
+        types: ['xmlhttprequest', 'other']
+      }, 'xml/other on core sub type');
+      if (detectMedia) {
+        install();
+      }
+    });
+  };
+
+  chrome.storage.local.get({
+    'detect-media': true
+  }, prefs => {
+    detectMedia = prefs['detect-media'];
+    if (detectMedia) {
+      enable();
     }
   });
-  run();
-  chrome.storage.onChanged.addListener(ps => ps['mime-watch'] && run());
+
+  chrome.storage.onChanged.addListener(ps => {
+    if (ps['detect-media']) {
+      detectMedia = ps['detect-media'].newValue;
+      if (detectMedia) {
+        enable();
+      }
+      else {
+        uninstall();
+      }
+    }
+  });
 }
 
 chrome.runtime.onMessage.addListener((request, sender, response) => {
@@ -252,7 +289,7 @@ chrome.runtime.onMessage.addListener((request, sender, response) => {
     response(extra[request.tabId] || []);
     delete extra[request.tabId];
   }
-  else if (request.method === 'media-detected') {
+  else if (request.method === 'media-detected' && detectMedia) {
     observe({
       ...request.d,
       timeStamp: Date.now(),

@@ -479,7 +479,7 @@ const run = async (div, picked, button) => {
     // ask user for picking
     if (!file) {
       // example for failing download
-      // {suggestedName: 'x.mkv', types: [{description: 'V', accept: {'video/mkv': ['.verylongextensionfile']}}]}
+      // {suggestedName: 'x.mkv', types: [{description: 'V', accept: {'video/x-matroska': ['.verylongextensionfile']}}]}
       file = await pickSaveFile(opts);
     }
 

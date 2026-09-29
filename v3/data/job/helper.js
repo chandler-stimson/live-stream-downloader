@@ -137,7 +137,7 @@ helper.options = ({meta}) => {
     }
     else {
       options.types[0].accept = {
-        'video/mkv': ['.mkv']
+        'video/x-matroska': ['.mkv']
       };
     }
     options.suggestedName =
@@ -147,7 +147,7 @@ helper.options = ({meta}) => {
   }
   else if (meta.ext === '') {
     options.types[0].accept = {
-      'video/mkv': ['.mkv']
+      'video/x-matroska': ['.mkv']
     };
     options.suggestedName =
       (meta.gname || meta.name || 'Untitled') +

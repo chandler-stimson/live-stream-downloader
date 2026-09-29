@@ -48,6 +48,7 @@ const MIME_TYPES = {
   'audio/mpegurl': 'm3u8',
   'audio/x-mpegurl': 'm3u8',
   'video/3gpp': '3gp',
+  'video/x-matroska': 'mkv',
   'video/mpeg': 'mpg',
   'video/quicktime': 'mov',
   'video/x-flv': 'flv',
@@ -95,6 +96,7 @@ class SGet extends MyGet {
 
     name = e ? e[1] : name;
     meta.mime = resp.headers.get('Content-Type') || meta.mime || '';
+    meta.mime = meta.mime.split(';')[0];
     meta.ext = e ? e[2] : (MIME_TYPES[meta.mime] || meta.mime.split('/')[1] || '').split(';')[0];
     meta.ext = meta.ext.slice(0, 15); // cannot be longer than 16 characters.
     //

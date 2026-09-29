@@ -369,43 +369,100 @@ const setQueued = (div, queued) => {
   });
 }
 
-/* ask user for picking a location; adjust the suggested name if the explorer rejects it */
-const pickSaveFile = async opts => {
-  // the explorer rejects the suggested name
-  // opts.types[0].accept = {'dd/vv': ['.longextensionfile']};
-  try {
-    // use the original name
-    return await window.showSaveFilePicker(opts);
+/* prepare the changes that a rejected save request requires; null when there is nothing to adjust */
+const adjust = opts => {
+  const msgs = [];
+
+  // remove illegal or problematic characters from the suggested name for Windows, macOS, Linux
+  // https://github.com/chandler-stimson/live-stream-downloader/issues/46
+  let name = opts.suggestedName || '';
+  const n = name.replace(
+    /[\\/:*?"<>|\0]|^[\s.]+|[\s.]+$|[~`!@#$%^&+={}[\];,]/g,
+    '_'
+  );
+  if (n !== name) {
+    msgs.push(`The file name "${name}" contains unsupported characters and is replaced by "${n}".`);
+    name = n;
   }
-  catch (e) {
-    if (e?.name !== 'AbortError') {
-      console.error(e);
+
+  // the file type filter must be dropped when a MIME type or an extension is not acceptable
+  const types = Array.isArray(opts.types) ? opts.types : [];
+  const accept = types[0]?.accept;
+  const invalid = accept && Object.entries(accept).some(([mime, exts]) => {
+    return /^[a-z0-9.+-]+\/[a-z0-9.+-]+$/i.test(mime) === false ||
+      exts.some(ext => /^\.[^.]{1,15}$/.test(ext) === false);
+  });
+  if (types.length && (!accept || invalid)) {
+    msgs.push('The requested file type filter is rejected by the file dialog and will be removed. The "All files" filter can then be used to select any file name.');
+    return {
+      name,
+      dropTypes: true,
+      msg: msgs.join('\n')
+    };
+  }
+
+  return msgs.length ? {
+    name,
+    msg: msgs.join('\n')
+  } : null;
+};
+
+/* ask user for picking a location; when the request fails, report the required changes
+   to the user and let the dialog itself provide the user gesture that each retried request needs */
+const pickSaveFile = async opts => {
+  let attempts = 0;
+  let firstError = null;
+  for (;;) {
+    try {
+      // use the original name
+      return await window.showSaveFilePicker(opts);
     }
-    if (e instanceof TypeError) {
-      try {
-        // try to remove illegal or problematic characters for Windows, macOS, Linux
-        // https://github.com/chandler-stimson/live-stream-downloader/issues/46
-        opts.suggestedName = opts.suggestedName.replace(
-          /[\\/:*?"<>|\0]|^[\s.]+|[\s.]+$|[~`!@#$%^&+={}[\];,]/g,
-          '_'
-        );
-        return await window.showSaveFilePicker(opts);
+    catch (e) {
+      if (e?.name !== 'AbortError') {
+        console.error(e);
       }
-      catch (e) {
-        if (e?.name !== 'AbortError') {
-          console.error(e);
-        }
-        if (e instanceof TypeError) {
-          delete opts.suggestedName;
-          return await window.showSaveFilePicker(opts);
+      firstError = firstError || e;
+      attempts += 1;
+
+      // do not retry endlessly; the first error is the actual cause
+      if (attempts >= 3) {
+        throw firstError;
+      }
+      // an unknown error cannot be fixed by retrying with a fresh gesture
+      if (e?.name !== 'AbortError' && e instanceof TypeError === false) {
+        throw e;
+      }
+
+      const proposal = adjust(opts);
+      try {
+        // activating this dialog hands its user gesture over to the retried picker call below
+        const name = await self.prompt(proposal ? `The file dialog rejected this request.
+
+${proposal.msg}
+
+Update the file name and retry?` : `The file dialog request was aborted before it could be shown.
+
+Update the file name and retry?`, {
+          ok: 'Retry',
+          no: 'Cancel',
+          value: proposal ? proposal.name : (opts.suggestedName || '')
+        });
+
+        if (name) {
+          opts.suggestedName = name;
         }
         else {
-          throw e;
+          // the user cleared the box; let the file dialog suggest a name
+          delete opts.suggestedName;
+        }
+        if (proposal?.dropTypes) {
+          delete opts.types;
         }
       }
-    }
-    else {
-      throw e;
+      catch {
+        // the user canceled the dialog; keep the original picker error
+        throw firstError;
+      }
     }
   }
 };
@@ -421,6 +478,8 @@ const run = async (div, picked, button) => {
     let file = picked || self.aFile;
     // ask user for picking
     if (!file) {
+      // example for failing download
+      // {suggestedName: 'x.mkv', types: [{description: 'V', accept: {'video/mkv': ['.verylongextensionfile']}}]}
       file = await pickSaveFile(opts);
     }
 

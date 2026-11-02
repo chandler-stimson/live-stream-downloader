@@ -19,6 +19,27 @@
 
 /* global FileSystemFileHandle, FileSystemDirectoryHandle,  */
 if (typeof self.showSaveFilePicker === 'undefined') {
+  /* delete an OPFS file; only call it on handles that this polyfill created,
+     no handle of a user-picked file (Chrome) can ever reach it */
+  self.removeOPFSFile = async file => {
+    try {
+      // release an open writable so that "removeEntry" is not blocked by an active stream
+      try {
+        await file.writer?.abort();
+      }
+      catch (e) {
+        // already closed (the normal case) or aborting is not possible
+      }
+      const root = await navigator.storage.getDirectory();
+      await root.removeEntry(file.name);
+    }
+    catch (e) {
+      // the startup wipe of the background page removes leftovers eventually
+      return false;
+    }
+    return true;
+  };
+
   FileSystemFileHandle.prototype.download = async function() {
     const blob = await this.getFile();
     const objectURL = URL.createObjectURL(blob);
@@ -28,20 +49,33 @@ if (typeof self.showSaveFilePicker === 'undefined') {
     link.download = this.name.slice(7);
     document.body.append(link);
     link.click();
+    link.remove();
+
+    // hand off first, delete later; deleting the OPFS copy before the download
+    // starts can invalidate a Firefox blob that is still backed by the file.
+    // never rejects (a leftover is picked up by the background page on its next start)
     setTimeout(() => {
       URL.revokeObjectURL(objectURL);
-      navigator.storage.getDirectory().then(root => {
-        root.removeEntry(this.name);
-      });
+      self.removeOPFSFile(this);
     }, 100);
   };
 
   FileSystemDirectoryHandle.prototype.getFileHandle = new Proxy(FileSystemDirectoryHandle.prototype.getFileHandle, {
     apply(target, self, args) {
-      const [name] = args;
+      const [name, options] = args;
       args[0] = (Math.random() + 1).toString(36).substring(2, 7) + ' - ' + name;
 
-      return Reflect.apply(target, self, args);
+      const promise = Reflect.apply(target, self, args);
+      // only created files are marked; a read request does not create anything.
+      // the marker lets error handlers know that it is safe to delete the file
+      // (never set for user-picked files)
+      if (options?.create) {
+        return promise.then(handle => {
+          handle.opfsStaged = true;
+          return handle;
+        });
+      }
+      return promise;
     }
   });
 

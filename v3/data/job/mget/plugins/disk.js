@@ -51,8 +51,18 @@ class FGet extends MyGet {
     };
   }
   async fetch(...args) {
-    await super.fetch(...args);
-    await this.cache.writer.close();
+    try {
+      await super.fetch(...args);
+      await this.cache.writer.close();
+    }
+    catch (e) {
+      // release the open writable so that the file is not blocked and can be removed
+      try {
+        await this.cache.writer.abort?.(e);
+      }
+      catch (e) {}
+      throw e;
+    }
   }
 }
 self.MyGet = FGet;

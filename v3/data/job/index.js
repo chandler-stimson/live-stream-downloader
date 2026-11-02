@@ -159,10 +159,8 @@ ${timingObjects.map(([id, a]) => {
         const name = file.name.replace(/\.(?=[^.]+$)/, '-' + timeline + '.');
         jobs.push({name, segments});
       }
-      try {
-        file.remove();
-      }
-      catch (e) {}
+      // delete the picked file; only present in OPFS (Firefox), a no-op in Chrome
+      self.removeOPFSFile?.(file);
       return self.batch(jobs, codec);
     }
     else if (selected !== 'extra-1') {
@@ -311,6 +309,9 @@ Use the box below to update the URL`, {
     document.body.dataset.mode = 'done';
   }
   catch (e) {
+    // the download did not complete; delete the local (OPFS) copy.
+    // this is a no-op when the file is on the user's disk (Chrome)
+    self.removeOPFSFile?.(file);
     error(e);
   }
   clearInterval(timer);
@@ -358,6 +359,8 @@ const setQueued = (div, queued) => {
         for (const [div, record] of queue) {
           record.controller.abort(Error('QUEUE_ABORT')); // rejects the unlimited promise
           setQueued(div, false);
+          // the download never started; remove the leftover pick (OPFS only)
+          self.removeOPFSFile?.(record.file);
         }
         queue.clear();
         self.notify('Queue canceled');
@@ -471,11 +474,14 @@ const run = async (div, picked, button) => {
   const label = button.value; // preserve for restoring (it may be localized)
   document.body.dataset.mode = 'prepare';
 
+  // used by the catch below to remove a picked-but-unused file (OPFS only)
+  let file = null;
+
   try {
     div.dataset.active = true;
 
     const opts = helper.options(div);
-    let file = picked || self.aFile;
+    file = picked || self.aFile;
     // ask user for picking
     if (!file) {
       // example for failing download
@@ -522,6 +528,10 @@ const run = async (div, picked, button) => {
     div.classList.add('done');
   }
   catch (e) {
+    // a picked but unused file must not be left behind (OPFS only; a no-op in Chrome)
+    if (file?.opfsStaged) {
+      self.removeOPFSFile?.(file);
+    }
     // the user dismissed the file picker dialog; this is not an error
     if (e?.name === 'AbortError') {
       document.body.dataset.mode = 'ready';
@@ -558,8 +568,10 @@ document.getElementById('hrefs').onsubmit = async e => {
   // queue: pick the location now; the download continues once Start is pressed
   if (action === 'queue') {
     document.body.dataset.mode = 'prepare';
+    // used by the catch below to remove a picked-but-unqueued file (OPFS only)
+    let file = null;
     try {
-      const file = await pickSaveFile(helper.options(div));
+      file = await pickSaveFile(helper.options(div));
 
       const record = {
         controller: new AbortController(),
@@ -586,6 +598,10 @@ document.getElementById('hrefs').onsubmit = async e => {
       document.body.dataset.mode = 'ready';
     }
     catch (e) {
+      // the file was picked but never queued; do not leave it behind (OPFS only)
+      if (file?.opfsStaged) {
+        self.removeOPFSFile?.(file);
+      }
       // the user dismissed the file picker dialog; this is not an error
       if (e?.name === 'AbortError') {
         document.body.dataset.mode = 'ready';
@@ -613,6 +629,8 @@ document.getElementById('hrefs').onsubmit = async e => {
       record.controller.abort(Error('QUEUE_ABORT')); // rejects the unlimited promise
       queue.delete(div);
       setQueued(div, false);
+      // the download never started; remove the leftover pick (OPFS only)
+      self.removeOPFSFile?.(record.file);
     }
     return;
   }

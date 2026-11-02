@@ -487,3 +487,26 @@ chrome.runtime.onConnectExternal.addListener(eport => {
     setUninstallURL(page + '?rd=feedback&name=' + encodeURIComponent(name) + '&version=' + version);
   }
 }
+
+/* clean download staging leftovers.
+   Firefox stages downloads in the OPFS (file-picker-polyfill.js); a crashed or
+   closed job page may leave files behind. The extension start (browser start or
+   extension install/update) has no in-flight download, so the root is wiped.
+   Chrome does not stage anything in the OPFS, so this is a no-op there */
+{
+  const wipe = async () => {
+    try {
+      const root = await navigator.storage.getDirectory();
+      for await (const [name] of root.entries()) {
+        try {
+          await root.removeEntry(name);
+        }
+        catch (e) {}
+      }
+    }
+    catch (e) {}
+  };
+
+  chrome.runtime.onStartup.addListener(wipe);
+  chrome.runtime.onInstalled.addListener(wipe);
+}

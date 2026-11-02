@@ -275,6 +275,10 @@ Use the box below to update the URL`, {
   }, 750);
 
   try {
+    // make the staged (OPFS; Firefox) file persistent so this long download cannot
+    // be evicted mid-way; the user's response is awaited before the download continues
+    await self.requestPersistentStorage?.();
+
     // attach disk writer
     await myGet.attach(file);
 

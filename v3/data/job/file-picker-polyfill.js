@@ -40,6 +40,18 @@ if (typeof self.showSaveFilePicker === 'undefined') {
     return true;
   };
 
+  self.requestPersistentStorage = async () => {
+    try {
+      if (await navigator.storage.persist()) {
+        return true;
+      }
+    }
+    catch (e) {
+      console.warn(e);
+    }
+    return false;
+  };
+
   FileSystemFileHandle.prototype.download = async function() {
     const blob = await this.getFile();
     const objectURL = URL.createObjectURL(blob);
